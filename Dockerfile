@@ -1,6 +1,6 @@
 FROM golang:latest as BUILDER
 
-MAINTAINER TommyLike<tommylikehu@gmail.com>
+MAINTAINER zhangjianjun
 
 # build binary
 RUN mkdir -p /go/src/gitee.com/openeuler/playground-manager

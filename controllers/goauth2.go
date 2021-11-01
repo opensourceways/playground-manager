@@ -72,7 +72,7 @@ type Oauth2CallBackLinksControllers struct {
 }
 
 type CallBackUrlData struct {
-	CallBackUrl string `json:"callbackUrl"`
+	CallBackUrl string `json:"callbackInfo"`
 	ClientId    string `json:"clientId"`
 }
 
@@ -125,9 +125,9 @@ func (c *Oauth2AuthenticationControllers) RetData(resp OauthInfoData) {
 }
 
 type OauthInfoData struct {
-	UserInfo handler.RespUserInfo
-	Mesg     string `json:"message"`
-	Code     int    `json:"code"`
+	UserInfo handler.RespUserInfo `json:"userInfo"`
+	Mesg     string               `json:"message"`
+	Code     int                  `json:"code"`
 }
 
 // @Title Oauth2Authentication
@@ -146,7 +146,7 @@ func (u *Oauth2AuthenticationControllers) Post() {
 	json.Unmarshal(u.Ctx.Input.RequestBody, &authCode)
 	if len(authCode.AuthCode) < 1 {
 		oauthInfo.Code = 400
-		oauthInfo.Mesg = "Request parameter error"
+		oauthInfo.Mesg = "Authorization code is empty"
 		u.RetData(oauthInfo)
 		return
 	}
@@ -157,8 +157,8 @@ func (u *Oauth2AuthenticationControllers) Post() {
 		oauthInfo.Code = 200
 		oauthInfo.Mesg = "success"
 	} else {
-		oauthInfo.Code = 500
-		oauthInfo.Mesg = "Server internal error"
+		oauthInfo.Code = 400
+		oauthInfo.Mesg = "Wrong authorization code"
 	}
 	oauthInfo.UserInfo = rui
 	u.RetData(oauthInfo)
@@ -170,7 +170,7 @@ type UserInfoControllers struct {
 }
 
 type GetUserData struct {
-	UserInfo handler.RespUserInfo
+	UserInfo handler.RespUserInfo `json:"userInfo"`
 	Mesg     string `json:"message"`
 	Code     int    `json:"code"`
 }
@@ -195,14 +195,14 @@ func (u *UserInfoControllers) Get() {
 	token := u.GetString("token")
 	userId, _ := u.GetInt64("userId", 0)
 	if userId == 0 {
-		gud.Mesg = "Request parameter error"
+		gud.Mesg = "User information error"
 		gud.Code = 400
 		u.RetData(gud)
 		return
 	}
 	if token == "" {
-		gud.Mesg = "Request parameter error"
-		gud.Code = 401
+		gud.Mesg = "Authority authentication failed"
+		gud.Code = 403
 		u.RetData(gud)
 		return
 	} else {

@@ -6,7 +6,6 @@ import (
 )
 
 func init() {
-	beego.Router("/", &controllers.MainController{})
 	// Get callback request link
 	beego.Router("/playground/oauth2/callback/links", &controllers.Oauth2CallBackLinksControllers{})
 	// gitee callback request link,Get callback result

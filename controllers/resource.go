@@ -48,20 +48,20 @@ func (u *CrdResourceControllers) Post() {
 	json.Unmarshal(u.Ctx.Input.RequestBody, &rp)
 	if len(rp.TemplatePath) < 1 || rp.UserId < 1 || len(rp.ResourceId) < 1 {
 		resData.Code = 400
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Please check whether the request parameters are correct"
 		u.RetData(resData)
 		return
 	}
 	if len(rp.Token) < 1 {
 		resData.Code = 401
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Unauthorized authentication information"
 		u.RetData(resData)
 		return
 	} else {
 		gui := models.GiteeUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
 		ok := handler.CheckToken(&gui)
 		if !ok {
-			resData.Mesg = "Request parameter error"
+			resData.Mesg = "Authority authentication failed"
 			resData.Code = 403
 			u.RetData(resData)
 			return
@@ -102,34 +102,34 @@ func (u *CrdResourceControllers) Get() {
 	token := u.GetString("token")
 	userId, _ := u.GetInt64("userId", 0)
 	if userId == 0 {
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Please check whether to upload user information"
 		resData.Code = 404
 		u.RetData(resData)
 		return
 	}
 	envResource := u.GetString("templatePath")
 	if len(envResource) == 0 {
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Please check if you carry the resource template path information"
 		resData.Code = 405
 		u.RetData(resData)
 		return
 	}
 	resourceId := u.GetString("resourceId")
 	if len(resourceId) == 0 {
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Please check whether the resource parameter information is carried"
 		resData.Code = 405
 		u.RetData(resData)
 		return
 	}
 	envRes, err := base64.StdEncoding.DecodeString(envResource)
 	if err != nil {
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Template format error"
 		resData.Code = 406
 		u.RetData(resData)
 		return
 	}
 	if token == "" {
-		resData.Mesg = "Request parameter error"
+		resData.Mesg = "Unauthorized authentication information"
 		resData.Code = 403
 		u.RetData(resData)
 		return

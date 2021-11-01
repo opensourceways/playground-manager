@@ -354,6 +354,114 @@ func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) 
 	return
 }
 
+func ParsingMap(mapData map[string]interface{}, key string) (map[string]interface{}, bool) {
+	if value, ok := mapData[key]; ok {
+		data := value.(map[string]interface{})
+		return data, true
+	}
+	return nil, false
+}
+
+func ParsingMapStr(mapData map[string]interface{}, key string) (string, bool) {
+	if value, ok := mapData[key]; ok {
+		data := value.(string)
+		return data, true
+	}
+	return "", false
+}
+
+func ParsingMapSlice(mapData map[string]interface{}, key string) ([]interface{}, bool) {
+	if value, ok := mapData[key]; ok {
+		data := value.([]interface{})
+		return data, true
+	}
+	return nil, false
+}
+
+func RecIter(rls *ResListStatus, listData []unstructured.Unstructured, obj *unstructured.Unstructured) {
+	for _, items := range listData {
+		metadata, ok := ParsingMap(items.Object, "metadata")
+		if !ok {
+			continue
+		}
+		name, ok := ParsingMapStr(metadata, "name")
+		if !ok {
+			continue
+		}
+		if name != obj.GetName() {
+			continue
+		}
+		status, ok := ParsingMap(items.Object, "status")
+		if !ok {
+			continue
+		}
+		conditions, ok := ParsingMapSlice(status, "conditions")
+		if !ok {
+			continue
+		}
+		for _, cond := range conditions {
+			conds := cond.(map[string]interface{})
+			typex, ok := ParsingMapStr(conds, "type")
+			if !ok {
+				continue
+			}
+			switch typex {
+			case "ServerCreated":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerCreatedFlag = true
+				}
+				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+				if ok {
+					rls.ServerCreatedTime = lastTransitionTime
+				}
+				err, ok := ParsingMapStr(conds, "error")
+				if ok {
+					rls.ErrorInfo = err
+				}
+			case "ServerReady":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerReadyFlag = true
+				}
+				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+				if ok {
+					rls.ServerReadyTime = lastTransitionTime
+				}
+				err, ok := ParsingMapStr(conds, "error")
+				if ok {
+					rls.ErrorInfo = err
+				}
+				message, ok := ParsingMap(conds, "message")
+				if ok {
+					instanceEndpoint, ok := ParsingMapStr(message, "instanceEndpoint")
+					if ok {
+						rls.InstanceEndpoint = instanceEndpoint
+					}
+				}
+			case "ServerInactive":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerInactiveFlag = true
+				}
+				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+				if ok {
+					rls.ServerInactiveTime = lastTransitionTime
+				}
+			case "ServerRecycled":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerRecycledFlag = true
+				}
+				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+				if ok {
+					rls.ServerRecycledTime = lastTransitionTime
+				}
+			}
+		}
+	}
+}
+
 func GetResList(objList *unstructured.UnstructuredList, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured) ResListStatus {
 	err := error(nil)
@@ -367,62 +475,7 @@ func GetResList(objList *unstructured.UnstructuredList, dr dynamic.ResourceInter
 		apiVersion := objList.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
 			if len(objList.Items) > 0 {
-				for _, items := range objList.Items {
-					if metadata, ok := items.Object["metadata"]; ok {
-						metadata := metadata.(map[string]interface{})
-						if name, ok := metadata["name"]; ok {
-							name = name.(string)
-							if name == obj.GetName() {
-								if status, ok := items.Object["status"]; ok {
-									subStatus := status.(map[string]interface{})
-									if conditions, ok := subStatus["conditions"]; ok {
-										condition := conditions.([]interface{})
-										for _, cond := range condition {
-											cond := cond.(map[string]interface{})
-											if typex, ok := cond["type"]; ok {
-												switch typex.(string) {
-												case "ServerCreated":
-													if cond["status"].(string) == "True" {
-														rls.ServerCreatedFlag = true
-													}
-													rls.ServerCreatedTime = cond["lastTransitionTime"].(string)
-													if errStr, ok := cond["error"]; ok {
-														rls.ErrorInfo = errStr.(string)
-													}
-												case "ServerReady":
-													if cond["status"].(string) == "True" {
-														rls.ServerReadyFlag = true
-													}
-													if message, ok := cond["message"]; ok {
-														mess := message.(map[string]interface{})
-														if instanceEndpoint, ok := mess["instanceEndpoint"]; ok {
-															endpoint := instanceEndpoint.(string)
-															rls.InstanceEndpoint = endpoint
-														}
-													}
-													rls.ServerReadyTime = cond["lastTransitionTime"].(string)
-													if errStr, ok := cond["error"]; ok {
-														rls.ErrorInfo = errStr.(string)
-													}
-												case "ServerInactive":
-													if cond["status"].(string) == "True" {
-														rls.ServerInactiveFlag = true
-													}
-													rls.ServerInactiveTime = cond["lastTransitionTime"].(string)
-												case "ServerRecycled":
-													if cond["status"].(string) == "True" {
-														rls.ServerRecycledFlag = true
-													}
-													rls.ServerRecycledTime = cond["lastTransitionTime"].(string)
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+				RecIter(&rls, objList.Items, obj)
 			}
 		}
 	}
