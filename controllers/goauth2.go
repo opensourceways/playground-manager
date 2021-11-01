@@ -13,7 +13,7 @@ import (
 	"playground_backend/models"
 )
 
-type GiteeCallBackControllers struct {
+type Oauth2CallBackControllers struct {
 	beego.Controller
 }
 
@@ -23,7 +23,7 @@ type GiteeCallBackControllers struct {
 // @Success 200 {int} models.callback
 // @Failure 403 body is empty
 // @router / [post]
-func (u *GiteeCallBackControllers) Post() {
+func (u *Oauth2CallBackControllers) Post() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
@@ -34,7 +34,7 @@ func (u *GiteeCallBackControllers) Post() {
 	return
 }
 
-func (c *GiteeCallBackControllers) RetData(resp CodeResData) {
+func (c *Oauth2CallBackControllers) RetData(resp CodeResData) {
 	c.Data["json"] = resp
 	c.ServeJSON()
 }
@@ -45,13 +45,13 @@ type CodeResData struct {
 	Code      int    `json:"code"`
 }
 
-// @Title Get GiteeCallBack
-// @Description get GiteeCallBack
+// @Title Get Oauth2CallBack
+// @Description get Oauth2CallBack
 // @Param	status	int	true (0,1,2)
-// @Success 200 {object} GiteeCallBack
+// @Success 200 {object} Oauth2CallBack
 // @Failure 403 :status is err
 // @router / [get]
-func (u *GiteeCallBackControllers) Get() {
+func (u *Oauth2CallBackControllers) Get() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr,
@@ -67,7 +67,7 @@ func (u *GiteeCallBackControllers) Get() {
 	u.RetData(crd)
 }
 
-type GiteeCallBackUrlControllers struct {
+type Oauth2CallBackLinksControllers struct {
 	beego.Controller
 }
 
@@ -82,18 +82,18 @@ type GetResData struct {
 	Code        int    `json:"code"`
 }
 
-func (c *GiteeCallBackUrlControllers) RetData(resp GetResData) {
+func (c *Oauth2CallBackLinksControllers) RetData(resp GetResData) {
 	c.Data["json"] = resp
 	c.ServeJSON()
 }
 
-// @Title Get GiteeCallBackUrl
-// @Description get GiteeCallBackUrl
+// @Title Get Oauth2CallBackLinks
+// @Description get Oauth2CallBackLinks
 // @Param	status	int	true (0,1,2)
-// @Success 200 {object} GiteeCallBackUrl
+// @Success 200 {object} Oauth2CallBackLinks
 // @Failure 403 :status is err
 // @router / [get]
-func (u *GiteeCallBackUrlControllers) Get() {
+func (u *Oauth2CallBackLinksControllers) Get() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr,
@@ -111,7 +111,7 @@ func (u *GiteeCallBackUrlControllers) Get() {
 	return
 }
 
-type GiteeOauth2Controllers struct {
+type Oauth2AuthenticationControllers struct {
 	beego.Controller
 }
 
@@ -119,7 +119,7 @@ type AuthCode struct {
 	AuthCode string `json:"code"`
 }
 
-func (c *GiteeOauth2Controllers) RetData(resp OauthInfoData) {
+func (c *Oauth2AuthenticationControllers) RetData(resp OauthInfoData) {
 	c.Data["json"] = resp
 	c.ServeJSON()
 }
@@ -130,13 +130,13 @@ type OauthInfoData struct {
 	Code     int    `json:"code"`
 }
 
-// @Title GiteeOauth2
-// @Description GiteeOauth2
+// @Title Oauth2Authentication
+// @Description Oauth2Authentication
 // @Param	body		body 	models.GiteeOauth2	true		"body for user content"
-// @Success 200 {int} models.GiteeOauth2
+// @Success 200 {int} models.Oauth2Authentication
 // @Failure 403 body is empty
 // @router / [post]
-func (u *GiteeOauth2Controllers) Post() {
+func (u *Oauth2AuthenticationControllers) Post() {
 	var authCode AuthCode
 	var oauthInfo OauthInfoData
 	req := u.Ctx.Request
@@ -145,22 +145,27 @@ func (u *GiteeOauth2Controllers) Post() {
 	logs.Info("gitee oauth2 request parameters: ", string(u.Ctx.Input.RequestBody))
 	json.Unmarshal(u.Ctx.Input.RequestBody, &authCode)
 	if len(authCode.AuthCode) < 1 {
-		oauthInfo.Code = 404
-		oauthInfo.Mesg = "Request parameter is empty"
+		oauthInfo.Code = 400
+		oauthInfo.Mesg = "Request parameter error"
 		u.RetData(oauthInfo)
 		return
 	}
 	rui := handler.RespUserInfo{}
 	handler.GetGiteeInfo(authCode.AuthCode, &rui)
 	logs.Info("rui: ", rui)
-	oauthInfo.Code = 200
-	oauthInfo.Mesg = "success"
+	if rui.UserId > 0 {
+		oauthInfo.Code = 200
+		oauthInfo.Mesg = "success"
+	} else {
+		oauthInfo.Code = 500
+		oauthInfo.Mesg = "Server internal error"
+	}
 	oauthInfo.UserInfo = rui
 	u.RetData(oauthInfo)
 	return
 }
 
-type GiteeUserInfoControllers struct {
+type UserInfoControllers struct {
 	beego.Controller
 }
 
@@ -170,18 +175,18 @@ type GetUserData struct {
 	Code     int    `json:"code"`
 }
 
-func (c *GiteeUserInfoControllers) RetData(resp GetUserData) {
+func (c *UserInfoControllers) RetData(resp GetUserData) {
 	c.Data["json"] = resp
 	c.ServeJSON()
 }
 
-// @Title Get GiteeUserInfo
-// @Description get GiteeUserInfo
+// @Title Get UserInfo
+// @Description get UserInfo
 // @Param	status	int	true (0,1,2)
-// @Success 200 {object} GiteeUserInfo
+// @Success 200 {object} UserInfo
 // @Failure 403 :status is err
 // @router / [get]
-func (u *GiteeUserInfoControllers) Get() {
+func (u *UserInfoControllers) Get() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	gud := GetUserData{}
@@ -190,14 +195,14 @@ func (u *GiteeUserInfoControllers) Get() {
 	token := u.GetString("token")
 	userId, _ := u.GetInt64("userId", 0)
 	if userId == 0 {
-		gud.Mesg = "Request parameter error, no userId"
-		gud.Code = 403
+		gud.Mesg = "Request parameter error"
+		gud.Code = 400
 		u.RetData(gud)
 		return
 	}
 	if token == "" {
 		gud.Mesg = "Request parameter error"
-		gud.Code = 403
+		gud.Code = 401
 		u.RetData(gud)
 		return
 	} else {
@@ -205,11 +210,13 @@ func (u *GiteeUserInfoControllers) Get() {
 		rui := handler.RespUserInfo{}
 		ok := handler.GetGiteeUserData(&gui, &rui)
 		if !ok {
-			gud.Mesg = "Request parameter error"
-			gud.Code = 405
+			gud.Mesg = "Requested user information does not exist"
+			gud.Code = 404
 			u.RetData(gud)
 			return
 		}
+		gud.Mesg = "success"
+		gud.Code = 200
 		gud.UserInfo = rui
 		u.RetData(gud)
 	}

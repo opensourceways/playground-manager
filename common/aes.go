@@ -172,23 +172,6 @@ func GenToken(username, password string) (string, error) {
 	return tokens, err
 }
 
-////解析token
-//func getting(tokenString string) (string, struct{}){
-//	token, claims, err := ParseToken(tokenString)
-//	if err != nil || !token.Valid {
-//		return "", struct{}{}
-//	}
-//	return token,
-//}
-//
-//func ParseToken(tokenString string) (*jwt.Token, *Claims, error) {
-//	Claims := &Claims{}
-//	token, err := jwt.ParseWithClaims(tokenString, Claims, func(token *jwt.Token) (i interface{}, err error) {
-//		return jwtkey, nil
-//	})
-//	return token, Claims, err
-//}
-
 //EncryptMd5 encrypt md5
 func EncryptMd5(str string) string {
 	if str == "" {

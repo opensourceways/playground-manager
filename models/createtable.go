@@ -52,10 +52,11 @@ type ResourceInfo struct {
 }
 
 type ResourceConfigPath struct {
-	Id           int64  `orm:"pk;auto;column(id)"`
-	ResourceId   string `orm:"size(256);column(resource_id);unique"`
-	ResourcePath string `orm:"size(512);column(resource_path)"`
+	Id              int64  `orm:"pk;auto;column(id)"`
+	ResourceId      string `orm:"size(256);column(resource_id);unique"`
+	ResourcePath    string `orm:"size(512);column(resource_path)"`
 	ResourceContent string `orm:"type(text);column(resource_content)"`
+	EncryptionType  string `orm:"size(32);column(encrypt_type)"`
 }
 
 func CreateDb() bool {

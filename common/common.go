@@ -2,16 +2,12 @@ package common
 
 import (
 	"encoding/base64"
-	"flag"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"time"
 	"unicode"
 )
@@ -110,6 +106,11 @@ func PraseTimeTint(tsStr string) int64 {
 	return TimeStrToInt(tsStr, DATE_T_FORMAT)
 }
 
+func LocalTimeToUTC(strTime string) time.Time {
+	local, _ := time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+	return local
+}
+
 func AesString(content []byte) (strs string) {
 	defer Catchs()
 	key := []byte(beego.AppConfig.String("key"))
@@ -159,24 +160,6 @@ func ReadAll(filePth string) ([]byte, error) {
 	}
 	defer f.Close()
 	return ioutil.ReadAll(f)
-}
-
-func GetK8sConfig() (err error) {
-	kubeconfig := new(string)
-	config_path := beego.AppConfig.String("yaml::config_path")
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(config_path),
-			"(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String(config_path, "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
-	GlobK8sConfig, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		logs.Error("BuildConfigFromFlags, err: ", err)
-		return
-	}
-	return
 }
 
 func GetRandomString(l int) string {
