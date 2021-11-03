@@ -228,6 +228,7 @@ func ParseTmpl(yamlDir string, rr ReqResource, resourceId string) []byte {
 		logs.Error("tempErr: ", tempErr)
 		return []byte{}
 	}
+	defer common.DelFile(allFiles)
 	s1 := templates.Lookup(fileName)
 	if s1 == nil {
 		logs.Error("fileName is nil")

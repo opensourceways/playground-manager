@@ -178,7 +178,7 @@ func IsLetter(chars rune) bool {
 }
 
 func ReadFileToEntry() {
-	content, fErr := ReadAll("yaml/test-kubeconfig.json")
+	content, fErr := ReadAll("template/kubeconfig.json")
 	if fErr != nil {
 		logs.Error("fErr: ", fErr)
 		return
