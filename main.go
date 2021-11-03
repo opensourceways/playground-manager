@@ -20,7 +20,7 @@ func main() {
 		println("error: Database initialization failed")
 		return
 	}
-	common.ReadFileToEntry()
+	//common.ReadFileToEntry()
 	beego.Run()
 }
 
