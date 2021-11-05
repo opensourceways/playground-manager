@@ -21,6 +21,7 @@ func main() {
 		return
 	}
 	//common.ReadFileToEntry()
+	//common.DesString("")
 	beego.Run()
 }
 
