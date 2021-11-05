@@ -130,6 +130,7 @@ func DesString(content string) (strContent []byte) {
 	if err != nil {
 		logs.Error(err)
 	}
+	//logs.Info(string(strContent))
 	return strContent
 }
 
