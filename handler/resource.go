@@ -69,6 +69,7 @@ type ResResourceInfo struct {
 	RemainTime int64     `json:"remainSecond"`
 	ResName    string    `json:"name"`
 	Status     int       `json:"status"`
+	UserResId  int64     `json:"userResId"`
 }
 
 type ExcelFileInfo struct {
@@ -767,4 +768,30 @@ func GetEnvResourc(rr ReqResource, rri *ResResourceInfo, resourceId string) {
 	}
 	content := ParseTmpl(yamlDir, rr, resourceId)
 	GetCreateRes(content, rri, resourceId)
+}
+
+func CreateUserResourceEnv(rr ReqResource, resourceId string) int64 {
+	ure := models.UserResourceEnv{ResourceId: resourceId, UserId: rr.UserId, TemplatePath: rr.EnvResource}
+	queryErr := models.QueryUserResourceEnv(&ure, "UserId", "ResourceId", "TemplatePath")
+	if queryErr != nil {
+		logs.Error("CreateUserResourceEnv, queryErr: ", queryErr)
+	}
+	if ure.Id > 0 {
+		return ure.Id
+	} else {
+		ure = models.UserResourceEnv{ResourceId: resourceId, UserId: rr.UserId, TemplatePath: rr.EnvResource,
+			ContactEmail: rr.ContactEmail, CreateTime: common.GetCurTime()}
+		userResId, inertErr := models.InsertUserResourceEnv(&ure)
+		if userResId == 0 {
+			logs.Error("CreateUserResourceEnv, inertErr: ", inertErr)
+		}
+		return userResId
+	}
+}
+
+func QueryUserResourceEnv(ure *models.UserResourceEnv) {
+	queryErr := models.QueryUserResourceEnv(ure, "Id")
+	if queryErr != nil {
+		logs.Error("QueryUserResourceEnv, queryErr: ", queryErr)
+	}
 }

@@ -59,6 +59,17 @@ type ResourceConfigPath struct {
 	EncryptionType  string `orm:"size(32);column(encrypt_type)"`
 }
 
+type UserResourceEnv struct {
+	Id           int64  `orm:"pk;auto;column(id)"`
+	UserId       int64  `orm:"column(user_id);index" description:"用户id"`
+	ResourceId   string `orm:"size(256);column(resource_id);unique"`
+	TemplatePath string `orm:"size(512);column(template_path)"`
+	ContactEmail string `orm:"size(256);column(contact_email)"`
+	CreateTime   string `orm:"size(32);column(create_time);"`
+	UpdateTime   string `orm:"size(32);column(update_time);null"`
+	DeleteTime   string `orm:"size(32);column(delete_time);null"`
+}
+
 func CreateDb() bool {
 	BConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
@@ -71,6 +82,7 @@ func CreateDb() bool {
 		orm.RegisterModelWithPrefix(prefix,
 			new(GiteeUserInfo), new(GiteeTokenInfo),
 			new(ResourceInfo), new(ResourceConfigPath),
+			new(UserResourceEnv),
 		)
 		logs.Info("table create success!")
 		errosyn := orm.RunSyncdb("default", false, true)
