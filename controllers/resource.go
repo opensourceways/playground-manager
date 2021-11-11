@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
@@ -76,6 +75,8 @@ func (u *CrdResourceControllers) Post() {
 		} else {
 			resData.Code = 200
 		}
+		userResId := handler.CreateUserResourceEnv(rr, rp.ResourceId)
+		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Mesg = "success"
 	} else {
@@ -100,31 +101,18 @@ func (u *CrdResourceControllers) Get() {
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr,
 		", Header: ", req.Header, ", body: ", req.Body)
 	token := u.GetString("token")
-	userId, _ := u.GetInt64("userId", 0)
-	if userId == 0 {
-		resData.Mesg = "Please check whether to upload user information"
+	userResId, _ := u.GetInt64("userResId", 0)
+	if userResId == 0 {
+		resData.Mesg = "Please check whether to upload user resource id information"
 		resData.Code = 404
 		u.RetData(resData)
 		return
 	}
-	envResource := u.GetString("templatePath")
-	if len(envResource) == 0 {
-		resData.Mesg = "Please check if you carry the resource template path information"
+	ure := models.UserResourceEnv{Id: userResId}
+	handler.QueryUserResourceEnv(&ure)
+	if ure.Id == 0 {
+		resData.Mesg = "User resource id information is wrong"
 		resData.Code = 405
-		u.RetData(resData)
-		return
-	}
-	resourceId := u.GetString("resourceId")
-	if len(resourceId) == 0 {
-		resData.Mesg = "Please check whether the resource parameter information is carried"
-		resData.Code = 405
-		u.RetData(resData)
-		return
-	}
-	envRes, err := base64.StdEncoding.DecodeString(envResource)
-	if err != nil {
-		resData.Mesg = "Template format error"
-		resData.Code = 406
 		u.RetData(resData)
 		return
 	}
@@ -135,8 +123,8 @@ func (u *CrdResourceControllers) Get() {
 		return
 	} else {
 		var rri = new(handler.ResResourceInfo)
-		rr := handler.ReqResource{EnvResource: string(envRes), UserId: userId}
-		handler.GetEnvResourc(rr, rri, resourceId)
+		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId}
+		handler.GetEnvResourc(rr, rri, ure.ResourceId)
 		resData.ResInfo = *rri
 		resData.Code = 200
 		resData.Mesg = "success"
