@@ -125,6 +125,7 @@ func (u *CrdResourceControllers) Get() {
 		var rri = new(handler.ResResourceInfo)
 		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId}
 		handler.GetEnvResourc(rr, rri, ure.ResourceId)
+		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Code = 200
 		resData.Mesg = "success"

@@ -72,12 +72,12 @@ type Oauth2CallBackLinksControllers struct {
 }
 
 type CallBackUrlData struct {
-	CallBackUrl string `json:"callbackInfo"`
+	CallBackUrl string `json:"callbackUrl"`
 	ClientId    string `json:"clientId"`
 }
 
 type GetResData struct {
-	CallBackUrl CallBackUrlData
+	CallBackUrl CallBackUrlData `json:"callbackInfo"`
 	Mesg        string `json:"message"`
 	Code        int    `json:"code"`
 }
