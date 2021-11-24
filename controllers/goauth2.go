@@ -72,14 +72,14 @@ type Oauth2CallBackLinksControllers struct {
 }
 
 type CallBackUrlData struct {
-	CallBackUrl string `json:"callbackInfo"`
+	CallBackUrl string `json:"callbackUrl"`
 	ClientId    string `json:"clientId"`
 }
 
 type GetResData struct {
-	CallBackUrl CallBackUrlData
-	Mesg        string `json:"message"`
-	Code        int    `json:"code"`
+	CallBackUrl CallBackUrlData `json:"callbackInfo"`
+	Mesg        string          `json:"message"`
+	Code        int             `json:"code"`
 }
 
 func (c *Oauth2CallBackLinksControllers) RetData(resp GetResData) {
@@ -171,8 +171,8 @@ type UserInfoControllers struct {
 
 type GetUserData struct {
 	UserInfo handler.RespUserInfo `json:"userInfo"`
-	Mesg     string `json:"message"`
-	Code     int    `json:"code"`
+	Mesg     string               `json:"message"`
+	Code     int                  `json:"code"`
 }
 
 func (c *UserInfoControllers) RetData(resp GetUserData) {
