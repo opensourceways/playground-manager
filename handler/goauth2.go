@@ -61,6 +61,7 @@ type GiteeUserInfo struct {
 	UserLogin string `json:"login"`
 	UserName  string `json:"name"`
 	Url       string `json:"url"`
+	AvatarUrl string `json:"avatarUrl"`
 }
 
 // Obtain user information based on token
@@ -78,6 +79,7 @@ func GiteeUserConstructor(res map[string]interface{}, giteeUser *GiteeUserInfo) 
 	giteeUser.UserLogin = res["login"].(string)
 	giteeUser.UserName = res["name"].(string)
 	giteeUser.Url = res["url"].(string)
+	giteeUser.AvatarUrl = res["avatar_url"].(string)
 	giteeUser.UserId = int64(res["id"].(float64))
 }
 
@@ -89,7 +91,7 @@ func ProcOauthData(giteeToken GiteeTokenInfo, giteeUser GiteeUserInfo, token, au
 		userId = gui.UserId
 		CreateGiteeUserInfo(&gui, giteeUser, 2, token)
 		models.UpdateGiteeUserInfo(&gui, "UserLogin",
-			"UserName", "UserUrl", "AccessToken", "ExpirationTime", "UpdateTime")
+			"UserName", "UserUrl", "AccessToken", "ExpirationTime", "UpdateTime", "AvatarUrl")
 	} else {
 		logs.Info("queryErr: ", queryErr)
 		CreateGiteeUserInfo(&gui, giteeUser, 1, token)
@@ -141,6 +143,7 @@ func CreateGiteeUserInfo(gui *models.GiteeUserInfo, giteeUser GiteeUserInfo, fla
 	gui.UserName = giteeUser.UserName
 	gui.UserUrl = giteeUser.Url
 	gui.AccessToken = token
+	gui.AvatarUrl = giteeUser.AvatarUrl
 	gui.ExpirationTime = newTime
 	if flag == 1 {
 		gui.CreateTime = common.GetCurTime()
@@ -155,6 +158,7 @@ type RespUserInfo struct {
 	UserLogin  string `json:"login"`
 	UserName   string `json:"name"`
 	Url        string `json:"url"`
+	AvatarUrl  string `json:"avatarUrl"`
 	GiteeToken string `json:"giteeToken"`
 	UserToken  string `json:"userToken"`
 }
@@ -200,6 +204,7 @@ func CreateRespUserInfo(rui *RespUserInfo, giteeToken GiteeTokenInfo, giteeUser 
 	rui.Url = giteeUser.Url
 	rui.UserName = giteeUser.UserName
 	rui.UserLogin = giteeUser.UserLogin
+	rui.AvatarUrl = giteeUser.AvatarUrl
 }
 
 //CheckToken Check whether the token is legal

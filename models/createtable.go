@@ -12,7 +12,8 @@ type GiteeUserInfo struct {
 	GitId          int64  `orm:"column(git_id);unique" description:"git内部id"`
 	UserName       string `orm:"size(512);column(user_name)"`
 	UserLogin      string `orm:"size(512);column(user_login)"`
-	UserUrl        string `orm:"size(512);colnum(user_url)"`
+	UserUrl        string `orm:"size(512);colnum(avatar_url)"`
+	AvatarUrl      string `orm:"size(512);colnum(user_url)"`
 	AccessToken    string `orm:"size(512);column(access_token)"`
 	ExpirationTime string `orm:"size(32);column(expiration_time)" description:"token的过期时间"`
 	CreateTime     string `orm:"size(32);column(create_time);"`

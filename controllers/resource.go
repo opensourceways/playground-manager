@@ -43,11 +43,12 @@ func (u *CrdResourceControllers) Post() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
-	logs.Info("gitee oauth2 request parameters: ", string(u.Ctx.Input.RequestBody))
+	logs.Info("created crd parameters: ", string(u.Ctx.Input.RequestBody))
 	json.Unmarshal(u.Ctx.Input.RequestBody, &rp)
 	if len(rp.TemplatePath) < 1 || rp.UserId < 1 || len(rp.ResourceId) < 1 {
 		resData.Code = 400
 		resData.Mesg = "Please check whether the request parameters are correct"
+		logs.Error("created crd parameters: ", rp)
 		u.RetData(resData)
 		return
 	}
