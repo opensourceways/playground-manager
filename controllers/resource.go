@@ -69,7 +69,7 @@ func (u *CrdResourceControllers) Post() {
 	}
 	var rri = new(handler.ResResourceInfo)
 	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId, ContactEmail: rp.ContactEmail}
-	handler.CreateEnvResourc(rr, rri, rp.ResourceId)
+	handler.CreateEnvResource(rr, rri, rp.ResourceId)
 	if rri.UserId > 0 {
 		if rri.Status == 0 {
 			resData.Code = 202
@@ -125,7 +125,7 @@ func (u *CrdResourceControllers) Get() {
 	} else {
 		var rri = new(handler.ResResourceInfo)
 		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId}
-		handler.GetEnvResourc(rr, rri, ure.ResourceId)
+		handler.GetEnvResource(rr, rri, ure.ResourceId)
 		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Code = 200

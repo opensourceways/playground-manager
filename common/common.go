@@ -72,6 +72,9 @@ func TimeConverStr(ts, oldLayout, newLayout string) string {
 }
 
 func TimeTConverStr(ts string) string {
+	if len(ts) > 19 {
+		ts = ts[:19]
+	}
 	return TimeConverStr(ts, DATE_T_FORMAT, DATE_FORMAT)
 }
 
