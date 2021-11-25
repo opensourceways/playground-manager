@@ -63,7 +63,7 @@ type ResourceConfigPath struct {
 type UserResourceEnv struct {
 	Id           int64  `orm:"pk;auto;column(id)"`
 	UserId       int64  `orm:"column(user_id);index" description:"用户id"`
-	ResourceId   string `orm:"size(256);column(resource_id);unique"`
+	ResourceId   string `orm:"size(256);column(resource_id)"`
 	TemplatePath string `orm:"size(512);column(template_path)"`
 	ContactEmail string `orm:"size(256);column(contact_email)"`
 	CreateTime   string `orm:"size(32);column(create_time);"`

@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/retry"
 	"net/http"
 	"os"
 	"path"
@@ -91,6 +90,7 @@ type ResListStatus struct {
 	ServerReadyFlag    bool
 	ServerInactiveFlag bool
 	ServerRecycledFlag bool
+	ServerErroredFlag  bool
 	ServerCreatedTime  string
 	ServerReadyTime    string
 	ServerInactiveTime string
@@ -201,7 +201,7 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
 	}
 }
 
-func ParseTmpl(yamlDir string, rr ReqResource, resourceId string) []byte {
+func ParseTmpl(yamlDir string, rr ReqResource, resourceId, localPath string) []byte {
 	if len(rr.ContactEmail) < 1 {
 		rr.ContactEmail = beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
 	}
@@ -214,11 +214,13 @@ func ParseTmpl(yamlDir string, rr ReqResource, resourceId string) []byte {
 		logs.Error("dirErr: ", dirErr)
 		return []byte{}
 	}
-	fileName := path.Base(rr.EnvResource)
+	tmpLocalPath := localPath
+	localPath = strings.ReplaceAll(localPath, "\\", "/")
+	fileName := path.Base(localPath)
 	for _, file := range files {
 		pFileName := file.Name()
 		if fileName == pFileName {
-			fullPath := filepath.Join(yamlDir, fileName)
+			fullPath := filepath.Join(yamlDir, pFileName)
 			allFiles = append(allFiles, fullPath)
 		}
 	}
@@ -235,7 +237,8 @@ func ParseTmpl(yamlDir string, rr ReqResource, resourceId string) []byte {
 		logs.Error("fileName is nil")
 		return []byte{}
 	}
-	outFileName := rtp.Name + ".yaml"
+	preFileName := common.GetRandomString(8)
+	outFileName := preFileName + "-" + rtp.Name + ".yaml"
 	//s1.ExecuteTemplate(os.Stdout, "yaml/test.yaml", ei)
 	outPutPath := filepath.Join(yamlDir, outFileName)
 	f, ferr := os.Create(outPutPath)
@@ -258,37 +261,41 @@ func ParseTmpl(yamlDir string, rr ReqResource, resourceId string) []byte {
 	if common.FileExists(outPutPath) {
 		DeleteFile(outPutPath)
 	}
+	if common.FileExists(tmpLocalPath) {
+		DeleteFile(tmpLocalPath)
+	}
 	UnstructuredYaml(content)
 	return content
 }
 
-func DownLoadTemplate(yamlDir, fPath string) error {
+func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	common.CreateDir(yamlDir)
 	fileName := path.Base(fPath)
+	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
-	localPath := filepath.Join(yamlDir, fileName)
+	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
 	gitUrl := fmt.Sprintf(downloadUrl, fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
 	resp, err := http.Get(gitUrl)
 	if err != nil {
 		logs.Error("DownLoadTemplate, error: ", err)
-		return err
+		return err, localPath
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || body == nil {
 		logs.Error(err)
-		return err
+		return err, localPath
 	}
 	var contents map[string]interface{}
 	err = json.Unmarshal(body, &contents)
 	if err != nil {
 		logs.Error(err)
-		return err
+		return err, localPath
 	}
 	if contents == nil || contents["type"] == nil {
 		logs.Error("contents is nil or contents[type] is nil ", contents["type"])
-		return errors.New("contents is nil")
+		return errors.New("contents is nil"), localPath
 	}
 	if common.FileExists(localPath) {
 		DeleteFile(localPath)
@@ -296,7 +303,7 @@ func DownLoadTemplate(yamlDir, fPath string) error {
 	f, ferr := os.Create(localPath)
 	if ferr != nil {
 		logs.Error(ferr)
-		return ferr
+		return ferr, localPath
 	}
 	defer f.Close()
 	fileType := contents["type"].(string)
@@ -310,7 +317,7 @@ func DownLoadTemplate(yamlDir, fPath string) error {
 	} else {
 		f.WriteString(content)
 	}
-	return nil
+	return nil, localPath
 }
 
 func UnstructuredYaml(yamlData []byte) {
@@ -459,6 +466,18 @@ func RecIter(rls *ResListStatus, listData []unstructured.Unstructured, obj *unst
 				if ok {
 					rls.ServerRecycledTime = lastTransitionTime
 				}
+			case "ServerErrored":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerErroredFlag = true
+				}
+				message, ok := ParsingMap(conds, "message")
+				if ok {
+					detail, ok := ParsingMapStr(message, "detail")
+					if ok {
+						rls.ErrorInfo = detail
+					}
+				}
 			}
 		}
 	}
@@ -468,7 +487,7 @@ func GetResList(objList *unstructured.UnstructuredList, dr dynamic.ResourceInter
 	config *YamlConfig, obj *unstructured.Unstructured) ResListStatus {
 	err := error(nil)
 	rls := ResListStatus{ServerCreatedFlag: false, ServerReadyFlag: false,
-		ServerInactiveFlag: false, ServerRecycledFlag: false}
+		ServerInactiveFlag: false, ServerRecycledFlag: false, ServerErroredFlag: false}
 	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logs.Error("objList: ", objList)
@@ -512,16 +531,16 @@ func CreateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 		if len(curCreateTime) > 1 {
 			curTime := common.PraseTimeInt(curCreateTime)
 			eoi.CreateTime = curCreateTime
-			eoi.CompleteTime = curTime + config.Spec.InactiveAfterSeconds
+			eoi.CompleteTime = curTime + config.Spec.RecycleAfterSeconds
 		}
 		eoi.KindName = config.Kind
-		eoi.RemainTime = config.Spec.InactiveAfterSeconds
+		eoi.RemainTime = config.Spec.RecycleAfterSeconds
 		models.UpdateResourceInfo(&eoi, "CreateTime", "KindName", "RemainTime", "CompleteTime")
+		ParaseResData(objCreate, rri, eoi)
 	} else {
 		logs.Error("queryErr: ", queryErr)
 		return queryErr
 	}
-	ParaseResData(objCreate, rri, eoi)
 	return nil
 }
 
@@ -548,9 +567,10 @@ func UpdateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 	} else {
 		isDelete = true
 	}
-	if common.PraseTimeInt(common.GetCurTime())-common.PraseTimeInt(curCreateTime) > config.Spec.InactiveAfterSeconds {
+	if (common.PraseTimeInt(common.GetCurTime()) - common.PraseTimeInt(curCreateTime)) > config.Spec.RecycleAfterSeconds {
 		isDelete = true
 		rri.Status = 0
+		logs.Info(common.PraseTimeInt(common.GetCurTime())-common.PraseTimeInt(curCreateTime), config.Spec.RecycleAfterSeconds)
 	}
 	if isDelete {
 		err = dr.Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
@@ -566,28 +586,6 @@ func UpdateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 		PrintJsonStr(objCreate)
 		rri.Status = 0
 	} else {
-		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() (err error) {
-			spec, found, err := unstructured.NestedMap(obj.Object, "spec")
-			if err != nil || !found || spec == nil {
-				logs.Error("not found or error in spec: ", err)
-				return err
-			}
-			if err := unstructured.SetNestedMap(objGet.Object, spec, "spec", ); err != nil {
-				logs.Error("setNestedMap, err: ", err)
-				return err
-			}
-			objUpdate, err = dr.Update(context.TODO(), objGet, metav1.UpdateOptions{})
-			if err != nil {
-				logs.Error("dr.update, err: ", err)
-				return err
-			}
-			PrintJsonStr(objUpdate)
-			return nil
-		})
-		if retryErr != nil {
-			logs.Error("update failed, retryErr: ", retryErr)
-			return retryErr
-		}
 		rri.Status = 1
 	}
 	rls = GetResList(objList, dr, config, obj)
@@ -603,20 +601,22 @@ func UpdateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 	}
 	eoi := models.ResourceInfo{ResourceName: obj.GetName()}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
-	if eoi.Id > 0 && len(curCreateTime) > 1 {
-		curTime := common.PraseTimeInt(curCreateTime)
-		remainTime := eoi.CompleteTime - curTime
-		if remainTime < 0 {
-			eoi.CreateTime = curCreateTime
-			eoi.RemainTime = config.Spec.InactiveAfterSeconds
-			eoi.CompleteTime = config.Spec.InactiveAfterSeconds + curTime
-			models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
+	if eoi.Id > 0 {
+		if len(curCreateTime) > 1 {
+			curTime := common.PraseTimeInt(curCreateTime)
+			remainTime := eoi.CompleteTime - curTime
+			if remainTime < 0 {
+				eoi.CreateTime = curCreateTime
+				eoi.RemainTime = config.Spec.RecycleAfterSeconds
+				eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
+				models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
+			}
 		}
+		ParaseResData(obj, rri, eoi)
 	} else {
 		logs.Error("queryErr: ", queryErr)
 		return queryErr
 	}
-	ParaseResData(obj, rri, eoi)
 	return nil
 }
 
@@ -629,14 +629,15 @@ func ParaseResData(resData *unstructured.Unstructured, rri *ResResourceInfo, eoi
 	rri.CreateTime = common.LocalTimeToUTC(eoi.CreateTime)
 	rri.UserId = eoi.UserId
 	remainTime := eoi.CompleteTime - curTime
+	rri.UserName = eoi.UserName + ":" + eoi.PassWord
+	rri.ResName = eoi.ResourceName
 	if remainTime < 0 {
 		remainTime = 0
 		rri.Status = 0
+		rri.UserName = ""
+		rri.EndPoint = ""
 	}
 	rri.RemainTime = remainTime
-	rri.UserName = eoi.UserName + ":" + eoi.PassWord
-	//rri.EndPoint = endpointDomain + eoi.Subdomain + endpointPath
-	rri.ResName = eoi.ResourceName
 }
 
 func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) error {
@@ -686,16 +687,16 @@ func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) er
 }
 
 // Create resources
-func CreateEnvResourc(rr ReqResource, rri *ResResourceInfo, resourceId string) {
+func CreateEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
-	downErr := DownLoadTemplate(yamlDir, rr.EnvResource)
+	downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
 	downLock.Unlock()
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rr.EnvResource)
 		return
 	}
-	content := ParseTmpl(yamlDir, rr, resourceId)
+	content := ParseTmpl(yamlDir, rr, resourceId, localPath)
 	StartCreateRes(content, rri, resourceId)
 }
 
@@ -744,29 +745,29 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) erro
 		if len(curCreateTime) > 1 {
 			curTime := common.PraseTimeInt(curCreateTime)
 			eoi.CreateTime = curCreateTime
-			eoi.CompleteTime = curTime + config.Spec.InactiveAfterSeconds
+			eoi.CompleteTime = curTime + config.Spec.RecycleAfterSeconds
 		}
 		eoi.KindName = config.Kind
-		eoi.RemainTime = config.Spec.InactiveAfterSeconds
+		eoi.RemainTime = config.Spec.RecycleAfterSeconds
 		models.UpdateResourceInfo(&eoi, "CreateTime", "KindName", "RemainTime", "CompleteTime")
+		ParaseResData(obj, rri, eoi)
 	} else {
 		logs.Error("queryErr: ", queryErr)
 		return queryErr
 	}
-	ParaseResData(obj, rri, eoi)
 	return nil
 }
 
-func GetEnvResourc(rr ReqResource, rri *ResResourceInfo, resourceId string) {
+func GetEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
-	downErr := DownLoadTemplate(yamlDir, rr.EnvResource)
+	downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
 	downLock.Unlock()
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rr.EnvResource)
 		return
 	}
-	content := ParseTmpl(yamlDir, rr, resourceId)
+	content := ParseTmpl(yamlDir, rr, resourceId, localPath)
 	GetCreateRes(content, rri, resourceId)
 }
 
