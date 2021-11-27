@@ -194,6 +194,7 @@ func GetGiteeInfo(authCode string, rui *RespUserInfo) {
 				rui.UserName = gui.UserName
 				rui.UserLogin = gui.UserLogin
 				rui.GiteeToken = gti.AccessToken
+				rui.AvatarUrl = gui.AvatarUrl
 			}
 		}
 	}
