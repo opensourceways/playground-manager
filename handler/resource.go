@@ -160,25 +160,39 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 }
 
 func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
-	subDomain := strconv.FormatInt(rr.UserId, 10) + rr.EnvResource
+	userInfo := models.GiteeUserInfo{UserId: rr.UserId}
+	userErr := models.QueryGiteeUserInfo(&userInfo, "UserId")
+	if userInfo.UserId == 0 {
+		logs.Error("userErr:", userErr)
+		return
+	}
+	filenameall := path.Base(rr.EnvResource)
+	filesuffix := path.Ext(rr.EnvResource)
+	filePathList := strings.Split(rr.EnvResource, "/")
+	pathSub := ""
+	if len(filePathList) > 1 {
+		pathSub = filePathList[len(filePathList)-2]
+	} else {
+		pathSub = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(rr.EnvResource)))
+	}
+	fileprefix := filenameall[0 : len(filenameall)-len(filesuffix)]
+	resName := "resources-" + resourceId + "-" + pathSub + "-" + fileprefix + "-" + strconv.FormatInt(rr.UserId, 10)
+	rtp.Name = resName
+	subDomain := resName + rr.EnvResource + common.RandomString(32)
 	subDomain = common.EncryptMd5(subDomain)
 	if ok := common.IsLetter(rune(subDomain[0])); !ok {
 		subDomain = strings.Replace(subDomain, subDomain[:3], "res", 1)
 	}
-	filenameall := path.Base(rr.EnvResource)
-	filesuffix := path.Ext(rr.EnvResource)
-	fileprefix := filenameall[0 : len(filenameall)-len(filesuffix)]
-	resName := "resources-" + resourceId + "-" + fileprefix + "-" + strconv.FormatInt(rr.UserId, 10)
-	rtp.Name = resName
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
 	if eoi.Id > 0 {
-		rtp.Subdomain = eoi.Subdomain
+		rtp.Subdomain = subDomain
 		rtp.NamePassword = eoi.UserName + ":" + eoi.PassWord
-		rtp.UserId = eoi.ResourId
+		rtp.UserId = userInfo.UserLogin
 		eoi.UpdateTime = common.GetCurTime()
 		eoi.UserId = rr.UserId
-		models.UpdateResourceInfo(&eoi, "UserId", "UpdateTime")
+		eoi.Subdomain = subDomain
+		models.UpdateResourceInfo(&eoi, "UserId", "UpdateTime", "subDomain")
 	} else {
 		logs.Info("queryErr: ", queryErr)
 		eoi.ResourceName = resName
@@ -195,8 +209,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
 		eoi.UserName = userName
 		eoi.PassWord = passWord
 		userId := strconv.FormatInt(rr.UserId, 10) + rr.EnvResource
-		rtp.UserId = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userId)))
-		eoi.ResourId = rtp.UserId
+		rtp.UserId = userInfo.UserLogin
+		eoi.ResourId = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userId)))
 		models.InsertResourceInfo(&eoi)
 	}
 }
@@ -239,7 +253,6 @@ func ParseTmpl(yamlDir string, rr ReqResource, resourceId, localPath string) []b
 	}
 	preFileName := common.GetRandomString(8)
 	outFileName := preFileName + "-" + rtp.Name + ".yaml"
-	//s1.ExecuteTemplate(os.Stdout, "yaml/test.yaml", ei)
 	outPutPath := filepath.Join(yamlDir, outFileName)
 	f, ferr := os.Create(outPutPath)
 	if ferr != nil {
@@ -387,124 +400,125 @@ func ParsingMapSlice(mapData map[string]interface{}, key string) ([]interface{},
 	return nil, false
 }
 
-func RecIter(rls *ResListStatus, listData []unstructured.Unstructured, obj *unstructured.Unstructured) {
-	for _, items := range listData {
-		metadata, ok := ParsingMap(items.Object, "metadata")
+func RecIter(rls *ResListStatus, objGetData *unstructured.Unstructured, obj *unstructured.Unstructured) {
+	metadata, ok := ParsingMap(objGetData.Object, "metadata")
+	if !ok {
+		logs.Error("metadata does not exist, ", metadata)
+		return
+	}
+	name, ok := ParsingMapStr(metadata, "name")
+	if !ok {
+		logs.Error("name does not exist, ", name)
+		return
+	}
+	if name != obj.GetName() {
+		logs.Error("obj.GetName does not exist, ", obj.GetName())
+		return
+	}
+	status, ok := ParsingMap(objGetData.Object, "status")
+	if !ok {
+		logs.Error("status does not exist, ", status)
+		return
+	}
+	conditions, ok := ParsingMapSlice(status, "conditions")
+	if !ok {
+		logs.Error("conditions does not exist, ", conditions)
+		return
+	}
+	for _, cond := range conditions {
+		conds := cond.(map[string]interface{})
+		typex, ok := ParsingMapStr(conds, "type")
 		if !ok {
 			continue
 		}
-		name, ok := ParsingMapStr(metadata, "name")
-		if !ok {
-			continue
-		}
-		if name != obj.GetName() {
-			continue
-		}
-		status, ok := ParsingMap(items.Object, "status")
-		if !ok {
-			continue
-		}
-		conditions, ok := ParsingMapSlice(status, "conditions")
-		if !ok {
-			continue
-		}
-		for _, cond := range conditions {
-			conds := cond.(map[string]interface{})
-			typex, ok := ParsingMapStr(conds, "type")
-			if !ok {
-				continue
+		switch typex {
+		case "ServerCreated":
+			status, ok := ParsingMapStr(conds, "status")
+			if ok && status == "True" {
+				rls.ServerCreatedFlag = true
 			}
-			switch typex {
-			case "ServerCreated":
-				status, ok := ParsingMapStr(conds, "status")
-				if ok && status == "True" {
-					rls.ServerCreatedFlag = true
-				}
-				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+			lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+			if ok {
+				rls.ServerCreatedTime = lastTransitionTime
+			}
+			err, ok := ParsingMapStr(conds, "error")
+			if ok {
+				rls.ErrorInfo = err
+			}
+		case "ServerReady":
+			status, ok := ParsingMapStr(conds, "status")
+			if ok && status == "True" {
+				rls.ServerReadyFlag = true
+			}
+			lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+			if ok {
+				rls.ServerReadyTime = lastTransitionTime
+			}
+			err, ok := ParsingMapStr(conds, "error")
+			if ok {
+				rls.ErrorInfo = err
+			}
+			message, ok := ParsingMap(conds, "message")
+			if ok {
+				instanceEndpoint, ok := ParsingMapStr(message, "instanceEndpoint")
 				if ok {
-					rls.ServerCreatedTime = lastTransitionTime
+					rls.InstanceEndpoint = instanceEndpoint
 				}
-				err, ok := ParsingMapStr(conds, "error")
+			}
+		case "ServerInactive":
+			status, ok := ParsingMapStr(conds, "status")
+			if ok && status == "True" {
+				rls.ServerInactiveFlag = true
+			}
+			lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+			if ok {
+				rls.ServerInactiveTime = lastTransitionTime
+			}
+		case "ServerRecycled":
+			status, ok := ParsingMapStr(conds, "status")
+			if ok && status == "True" {
+				rls.ServerRecycledFlag = true
+			}
+			lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+			if ok {
+				rls.ServerRecycledTime = lastTransitionTime
+			}
+		case "ServerErrored":
+			status, ok := ParsingMapStr(conds, "status")
+			if ok && status == "True" {
+				rls.ServerErroredFlag = true
+			}
+			message, ok := ParsingMap(conds, "message")
+			if ok {
+				detail, ok := ParsingMapStr(message, "detail")
 				if ok {
-					rls.ErrorInfo = err
-				}
-			case "ServerReady":
-				status, ok := ParsingMapStr(conds, "status")
-				if ok && status == "True" {
-					rls.ServerReadyFlag = true
-				}
-				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
-				if ok {
-					rls.ServerReadyTime = lastTransitionTime
-				}
-				err, ok := ParsingMapStr(conds, "error")
-				if ok {
-					rls.ErrorInfo = err
-				}
-				message, ok := ParsingMap(conds, "message")
-				if ok {
-					instanceEndpoint, ok := ParsingMapStr(message, "instanceEndpoint")
-					if ok {
-						rls.InstanceEndpoint = instanceEndpoint
-					}
-				}
-			case "ServerInactive":
-				status, ok := ParsingMapStr(conds, "status")
-				if ok && status == "True" {
-					rls.ServerInactiveFlag = true
-				}
-				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
-				if ok {
-					rls.ServerInactiveTime = lastTransitionTime
-				}
-			case "ServerRecycled":
-				status, ok := ParsingMapStr(conds, "status")
-				if ok && status == "True" {
-					rls.ServerRecycledFlag = true
-				}
-				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
-				if ok {
-					rls.ServerRecycledTime = lastTransitionTime
-				}
-			case "ServerErrored":
-				status, ok := ParsingMapStr(conds, "status")
-				if ok && status == "True" {
-					rls.ServerErroredFlag = true
-				}
-				message, ok := ParsingMap(conds, "message")
-				if ok {
-					detail, ok := ParsingMapStr(message, "detail")
-					if ok {
-						rls.ErrorInfo = detail
-					}
+					rls.ErrorInfo = detail
 				}
 			}
 		}
 	}
 }
 
-func GetResList(objList *unstructured.UnstructuredList, dr dynamic.ResourceInterface,
+func GetResInfo(objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured) ResListStatus {
 	err := error(nil)
 	rls := ResListStatus{ServerCreatedFlag: false, ServerReadyFlag: false,
 		ServerInactiveFlag: false, ServerRecycledFlag: false, ServerErroredFlag: false}
-	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
+	objGetData, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		logs.Error("objList: ", objList)
+		logs.Error("objGetData: ", objGetData)
 	} else {
-		PrintJsonList(objList)
-		apiVersion := objList.GetAPIVersion()
+		PrintJsonStr(objGetData)
+		apiVersion := objGetData.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
-			if len(objList.Items) > 0 {
-				RecIter(&rls, objList.Items, obj)
-			}
+			RecIter(&rls, objGetData, obj)
 		}
 	}
 	logs.Info("==============Status information of the currently created resource=================\n", rls)
 	return rls
 }
 
-func CreateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr dynamic.ResourceInterface,
+func CreateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured, objCreate *unstructured.Unstructured) error {
 	err := error(nil)
 	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
@@ -514,7 +528,7 @@ func CreateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 	}
 	PrintJsonStr(objCreate)
 	curCreateTime := ""
-	rls := GetResList(objList, dr, config, obj)
+	rls := GetResInfo(objGetData, dr, config, obj)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		curCreateTime = common.TimeTConverStr(rls.ServerReadyTime)
 		rri.Status = 1
@@ -544,14 +558,14 @@ func CreateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 	return nil
 }
 
-func UpdateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr dynamic.ResourceInterface,
+func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured,
 	objCreate *unstructured.Unstructured, objUpdate *unstructured.Unstructured, objGet *unstructured.Unstructured) error {
 	PrintJsonStr(objGet)
 	err := error(nil)
 	curCreateTime := ""
 	isDelete := false
-	rls := GetResList(objList, dr, config, obj)
+	rls := GetResInfo(objGetData, dr, config, obj)
 	if rls.ServerRecycledFlag {
 		isDelete = true
 	}
@@ -588,7 +602,7 @@ func UpdateRes(rri *ResResourceInfo, objList *unstructured.UnstructuredList, dr 
 	} else {
 		rri.Status = 1
 	}
-	rls = GetResList(objList, dr, config, obj)
+	rls = GetResInfo(objGetData, dr, config, obj)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		curCreateTime = common.TimeTConverStr(rls.ServerReadyTime)
 		rri.Status = 1
@@ -642,13 +656,13 @@ func ParaseResData(resData *unstructured.Unstructured, rri *ResResourceInfo, eoi
 
 func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) error {
 	var (
-		err       error
-		objGet    *unstructured.Unstructured
-		objCreate *unstructured.Unstructured
-		objUpdate *unstructured.Unstructured
-		objList   *unstructured.UnstructuredList
-		gvk       *schema.GroupVersionKind
-		dr        dynamic.ResourceInterface
+		err        error
+		objGet     *unstructured.Unstructured
+		objCreate  *unstructured.Unstructured
+		objUpdate  *unstructured.Unstructured
+		objGetData *unstructured.Unstructured
+		gvk        *schema.GroupVersionKind
+		dr         dynamic.ResourceInterface
 	)
 	rri.Status = 0
 	obj := &unstructured.Unstructured{}
@@ -671,13 +685,13 @@ func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) er
 	}
 	objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		err = CreateRes(rri, objList, dr, config, obj, objCreate)
+		err = CreateRes(rri, objGetData, dr, config, obj, objCreate)
 		if err != nil {
 			logs.Error("CreateRes err: ", err)
 			return err
 		}
 	} else {
-		err = UpdateRes(rri, objList, dr, config, obj, objCreate, objUpdate, objGet)
+		err = UpdateRes(rri, objGetData, dr, config, obj, objCreate, objUpdate, objGet)
 		if err != nil {
 			logs.Error("UpdateRes err: ", err)
 			return err
@@ -703,10 +717,10 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) 
 // Poll resource status
 func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) error {
 	var (
-		err     error
-		objList *unstructured.UnstructuredList
-		gvk     *schema.GroupVersionKind
-		dr      dynamic.ResourceInterface
+		err        error
+		objGetData *unstructured.Unstructured
+		gvk        *schema.GroupVersionKind
+		dr         dynamic.ResourceInterface
 	)
 	rri.Status = 0
 	obj := &unstructured.Unstructured{}
@@ -728,7 +742,7 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) erro
 		return err
 	}
 	curCreateTime := ""
-	rls := GetResList(objList, dr, config, obj)
+	rls := GetResInfo(objGetData, dr, config, obj)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		rri.Status = 1
 		curCreateTime = common.TimeTConverStr(rls.ServerReadyTime)

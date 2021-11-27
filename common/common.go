@@ -149,9 +149,11 @@ func RandomString(lens int) string {
 func DelFile(fileList []string) {
 	if len(fileList) > 0 {
 		for _, filex := range fileList {
-			err := os.Remove(filex)
-			if err != nil {
-				logs.Error(err)
+			if FileExists(filex) {
+				err := os.Remove(filex)
+				if err != nil {
+					logs.Error(err)
+				}
 			}
 		}
 	}
