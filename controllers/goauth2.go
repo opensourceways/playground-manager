@@ -58,8 +58,9 @@ func (u *Oauth2CallBackControllers) Get() {
 		", Header: ", req.Header, ", body: ", req.Body)
 	code := u.GetString("code", "")
 	logs.Info("code: ", code)
+	authCode := handler.AuthCode{AuthCode: code}
 	rui := handler.RespUserInfo{}
-	handler.GetGiteeInfo(code, &rui)
+	handler.GetGiteeInfo(authCode, &rui)
 	var crd CodeResData
 	crd.GiteeCode = code
 	crd.Code = 200
@@ -115,10 +116,6 @@ type Oauth2AuthenticationControllers struct {
 	beego.Controller
 }
 
-type AuthCode struct {
-	AuthCode string `json:"code"`
-}
-
 func (c *Oauth2AuthenticationControllers) RetData(resp OauthInfoData) {
 	c.Data["json"] = resp
 	c.ServeJSON()
@@ -137,21 +134,21 @@ type OauthInfoData struct {
 // @Failure 403 body is empty
 // @router / [post]
 func (u *Oauth2AuthenticationControllers) Post() {
-	var authCode AuthCode
+	var authCode handler.AuthCode
 	var oauthInfo OauthInfoData
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
 	logs.Info("gitee oauth2 request parameters: ", string(u.Ctx.Input.RequestBody))
 	json.Unmarshal(u.Ctx.Input.RequestBody, &authCode)
-	if len(authCode.AuthCode) < 1 {
+	if len(authCode.AuthCode) < 1 || len(authCode.RedirectUri) < 1 {
 		oauthInfo.Code = 400
 		oauthInfo.Mesg = "Authorization code is empty"
 		u.RetData(oauthInfo)
 		return
 	}
 	rui := handler.RespUserInfo{}
-	handler.GetGiteeInfo(authCode.AuthCode, &rui)
+	handler.GetGiteeInfo(authCode, &rui)
 	logs.Info("rui: ", rui)
 	if rui.UserId > 0 {
 		oauthInfo.Code = 200

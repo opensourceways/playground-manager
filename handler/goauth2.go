@@ -163,26 +163,34 @@ type RespUserInfo struct {
 	UserToken  string `json:"userToken"`
 }
 
-func GetGiteeInfo(authCode string, rui *RespUserInfo) {
+type AuthCode struct {
+	AuthCode    string `json:"code"`
+	RedirectUri string `json:"redirectUri"`
+}
+
+func GetGiteeInfo(authCode AuthCode, rui *RespUserInfo) {
 	redirectUri := beego.AppConfig.String("gitee::oauth2_callback_url")
 	clientSecret := beego.AppConfig.String("gitee::client_secret")
 	clientId := beego.AppConfig.String("gitee::client_id")
+	if len(authCode.RedirectUri) < 1 {
+		authCode.RedirectUri = redirectUri
+	}
 	var giteeToken GiteeTokenInfo
-	GiteePostOauthToken(authCode, clientId, redirectUri, clientSecret, &giteeToken)
+	GiteePostOauthToken(authCode.AuthCode, clientId, authCode.RedirectUri, clientSecret, &giteeToken)
 	if len(giteeToken.AccessToken) > 1 {
 		var giteeUser GiteeUserInfo
 		GetGiteeUserInfoByToken(giteeToken.AccessToken, &giteeUser)
 		if giteeUser.UserId > 0 {
 			token, terr := common.GenToken(giteeUser.UserName, giteeUser.UserLogin)
 			if terr == nil {
-				userId := ProcOauthData(giteeToken, giteeUser, token, authCode)
+				userId := ProcOauthData(giteeToken, giteeUser, token, authCode.AuthCode)
 				rui.UserId = userId
 				rui.UserToken = token
 				CreateRespUserInfo(rui, giteeToken, giteeUser)
 			}
 		}
 	} else {
-		gti := models.GiteeTokenInfo{AuthCode: authCode}
+		gti := models.GiteeTokenInfo{AuthCode: authCode.AuthCode}
 		getErr := models.QueryGiteeTokenInfo(&gti, "AuthCode")
 		if getErr == nil {
 			gui := models.GiteeUserInfo{UserId: gti.UserId}
