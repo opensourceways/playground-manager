@@ -18,6 +18,7 @@ type RequestParameter struct {
 	UserId       int64  `json:"userId"`
 	ContactEmail string `json:"contactEmail"`
 	Token        string `json:"token"`
+	ForceDelete  int    `json:"forceDelete"`
 }
 
 func (c *CrdResourceControllers) RetData(resp ResData) {
@@ -67,9 +68,13 @@ func (u *CrdResourceControllers) Post() {
 			return
 		}
 	}
+	if rp.ForceDelete == 0 {
+		rp.ForceDelete = 1
+	}
 	var rri = new(handler.ResResourceInfo)
-	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId, ContactEmail: rp.ContactEmail}
-	handler.CreateEnvResource(rr, rri, rp.ResourceId)
+	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId,
+		ContactEmail: rp.ContactEmail, ForceDelete: rp.ForceDelete, ResourceId: rp.ResourceId}
+	handler.CreateEnvResource(rr, rri)
 	if rri.UserId > 0 {
 		if rri.Status == 0 {
 			resData.Code = 202
@@ -124,8 +129,8 @@ func (u *CrdResourceControllers) Get() {
 		return
 	} else {
 		var rri = new(handler.ResResourceInfo)
-		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId}
-		handler.GetEnvResource(rr, rri, ure.ResourceId)
+		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId, ResourceId: ure.ResourceId}
+		handler.GetEnvResource(rr, rri)
 		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Code = 200

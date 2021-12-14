@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
@@ -83,6 +82,8 @@ type ReqResource struct {
 	EnvResource  string
 	UserId       int64
 	ContactEmail string
+	ForceDelete  int
+	ResourceId   string
 }
 
 type ResListStatus struct {
@@ -159,7 +160,7 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 	return
 }
 
-func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
+func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource) {
 	userInfo := models.GiteeUserInfo{UserId: rr.UserId}
 	userErr := models.QueryGiteeUserInfo(&userInfo, "UserId")
 	if userInfo.UserId == 0 {
@@ -176,7 +177,7 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
 		pathSub = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(rr.EnvResource)))
 	}
 	fileprefix := filenameall[0 : len(filenameall)-len(filesuffix)]
-	resName := "resources-" + resourceId + "-" + pathSub + "-" + fileprefix + "-" + strconv.FormatInt(rr.UserId, 10)
+	resName := "resources-" + rr.ResourceId + "-" + pathSub + "-" + fileprefix + "-" + strconv.FormatInt(rr.UserId, 10)
 	rtp.Name = resName
 	subDomain := resName + rr.EnvResource + common.RandomString(32)
 	subDomain = common.EncryptMd5(subDomain)
@@ -215,12 +216,12 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, resourceId string) {
 	}
 }
 
-func ParseTmpl(yamlDir string, rr ReqResource, resourceId, localPath string) []byte {
+func ParseTmpl(yamlDir string, rr ReqResource, localPath string) []byte {
 	if len(rr.ContactEmail) < 1 {
 		rr.ContactEmail = beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
 	}
 	rtp := ReqTmplParase{ContactEmail: rr.ContactEmail}
-	InitReqTmplPrarse(&rtp, rr, resourceId)
+	InitReqTmplPrarse(&rtp, rr)
 	var templates *template.Template
 	var allFiles []string
 	files, dirErr := ioutil.ReadDir(yamlDir)
@@ -287,7 +288,7 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
-	gitUrl := fmt.Sprintf(downloadUrl, fPath)
+	gitUrl := fmt.Sprintf(downloadUrl + "?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
 	resp, err := http.Get(gitUrl)
 	if err != nil {
@@ -300,16 +301,6 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 		logs.Error(err)
 		return err, localPath
 	}
-	var contents map[string]interface{}
-	err = json.Unmarshal(body, &contents)
-	if err != nil {
-		logs.Error(err)
-		return err, localPath
-	}
-	if contents == nil || contents["type"] == nil {
-		logs.Error("contents is nil or contents[type] is nil ", contents["type"])
-		return errors.New("contents is nil"), localPath
-	}
 	if common.FileExists(localPath) {
 		DeleteFile(localPath)
 	}
@@ -318,18 +309,8 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 		logs.Error(ferr)
 		return ferr, localPath
 	}
+	f.Write(body)
 	defer f.Close()
-	fileType := contents["type"].(string)
-	encoding := contents["encoding"].(string)
-	content := contents["content"].(string)
-	if fileType == "file" && encoding == "base64" {
-		data, baseErr := base64.StdEncoding.DecodeString(content)
-		if baseErr == nil {
-			f.Write(data)
-		}
-	} else {
-		f.WriteString(content)
-	}
 	return nil, localPath
 }
 
@@ -560,8 +541,8 @@ func CreateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 
 func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured,
-	objCreate *unstructured.Unstructured, objUpdate *unstructured.Unstructured, objGet *unstructured.Unstructured) error {
-	PrintJsonStr(objGet)
+	objCreate *unstructured.Unstructured, objGet *unstructured.Unstructured) error {
+	//PrintJsonStr(objGet)
 	err := error(nil)
 	curCreateTime := ""
 	isDelete := false
@@ -634,6 +615,52 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	return nil
 }
 
+func ForceCreateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
+	config *YamlConfig, obj *unstructured.Unstructured,
+	objCreate *unstructured.Unstructured) error {
+	err := error(nil)
+	curCreateTime := ""
+	err = dr.Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+	if err != nil {
+		logs.Error("delete, err: ", err)
+		return err
+	}
+	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
+	if err != nil {
+		logs.Error("Create err: ", err)
+		return err
+	}
+	PrintJsonStr(objCreate)
+	rri.Status = 0
+	rls := GetResInfo(objGetData, dr, config, obj)
+	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
+		curCreateTime = common.TimeTConverStr(rls.ServerReadyTime)
+		rri.Status = 1
+		rri.EndPoint = rls.InstanceEndpoint
+	} else {
+		rri.Status = 0
+	}
+	if len(rls.ErrorInfo) > 2 {
+		logs.Error("err: ", rls.ErrorInfo)
+	}
+	eoi := models.ResourceInfo{ResourceName: obj.GetName()}
+	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
+	if eoi.Id > 0 {
+		if len(curCreateTime) > 1 {
+			curTime := common.PraseTimeInt(curCreateTime)
+			eoi.CreateTime = curCreateTime
+			eoi.RemainTime = config.Spec.RecycleAfterSeconds
+			eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
+			models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
+		}
+		ParaseResData(obj, rri, eoi)
+	} else {
+		logs.Error("queryErr: ", queryErr)
+		return queryErr
+	}
+	return nil
+}
+
 func ParaseResData(resData *unstructured.Unstructured, rri *ResResourceInfo, eoi models.ResourceInfo) {
 	if len(resData.Object) < 1 {
 		logs.Error("resData is nil")
@@ -654,12 +681,11 @@ func ParaseResData(resData *unstructured.Unstructured, rri *ResResourceInfo, eoi
 	rri.RemainTime = remainTime
 }
 
-func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) error {
+func StartCreateRes(yamlData []byte, rri *ResResourceInfo, rr ReqResource) error {
 	var (
 		err        error
 		objGet     *unstructured.Unstructured
 		objCreate  *unstructured.Unstructured
-		objUpdate  *unstructured.Unstructured
 		objGetData *unstructured.Unstructured
 		gvk        *schema.GroupVersionKind
 		dr         dynamic.ResourceInterface
@@ -671,7 +697,7 @@ func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) er
 		logs.Error("failed to get GVK, err: ", err)
 		return err
 	}
-	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), resourceId)
+	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 	if err != nil {
 		logs.Error("failed to get dr: ", err)
 		return err
@@ -691,17 +717,25 @@ func StartCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) er
 			return err
 		}
 	} else {
-		err = UpdateRes(rri, objGetData, dr, config, obj, objCreate, objUpdate, objGet)
-		if err != nil {
-			logs.Error("UpdateRes err: ", err)
-			return err
+		if rr.ForceDelete == 2 {
+			err = ForceCreateRes(rri, objGetData, dr, config, obj, objCreate)
+			if err != nil {
+				logs.Error("UpdateRes err: ", err)
+				return err
+			}
+		} else {
+			err = UpdateRes(rri, objGetData, dr, config, obj, objCreate, objGet)
+			if err != nil {
+				logs.Error("UpdateRes err: ", err)
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 // Create resources
-func CreateEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) {
+func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
 	downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
@@ -710,8 +744,12 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) 
 		logs.Error("File download failed, path: ", rr.EnvResource)
 		return
 	}
-	content := ParseTmpl(yamlDir, rr, resourceId, localPath)
-	StartCreateRes(content, rri, resourceId)
+	content := ParseTmpl(yamlDir, rr, localPath)
+	createErr := StartCreateRes(content, rri, rr)
+	if createErr != nil {
+		logs.Error("createErr: ", createErr)
+		return
+	}
 }
 
 // Poll resource status
@@ -772,7 +810,7 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string) erro
 	return nil
 }
 
-func GetEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) {
+func GetEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
 	downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
@@ -781,8 +819,8 @@ func GetEnvResource(rr ReqResource, rri *ResResourceInfo, resourceId string) {
 		logs.Error("File download failed, path: ", rr.EnvResource)
 		return
 	}
-	content := ParseTmpl(yamlDir, rr, resourceId, localPath)
-	GetCreateRes(content, rri, resourceId)
+	content := ParseTmpl(yamlDir, rr, localPath)
+	GetCreateRes(content, rri, rr.ResourceId)
 }
 
 func CreateUserResourceEnv(rr ReqResource, resourceId string) int64 {

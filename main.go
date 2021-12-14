@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/astaxie/beego"
 	"playground_backend/common"
+	"playground_backend/controllers"
 	"playground_backend/models"
 	_ "playground_backend/routers"
 )
@@ -22,6 +23,7 @@ func main() {
 	}
 	//common.ReadFileToEntry()
 	//common.DesString("")
+	beego.ErrorController(&controllers.ErrorController{})
 	beego.Run()
 }
 
