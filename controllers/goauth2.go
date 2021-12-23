@@ -73,7 +73,6 @@ type Oauth2CallBackLinksControllers struct {
 }
 
 type CallBackUrlData struct {
-	CallBackUrl string `json:"callbackUrl"`
 	ClientId    string `json:"clientId"`
 }
 
@@ -101,11 +100,9 @@ func (u *Oauth2CallBackLinksControllers) Get() {
 		", Header: ", req.Header, ", body: ", req.Body)
 	resp := GetResData{}
 	var cbu CallBackUrlData
-	callBackUrl := beego.AppConfig.String("gitee::oauth2_callback_url")
 	clientId := beego.AppConfig.String("gitee::client_id")
 	resp.Code = 200
 	resp.Mesg = "success"
-	cbu.CallBackUrl = callBackUrl
 	cbu.ClientId = clientId
 	resp.CallBackUrl = cbu
 	u.RetData(resp)

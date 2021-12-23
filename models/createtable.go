@@ -71,6 +71,12 @@ type UserResourceEnv struct {
 	DeleteTime   string `orm:"size(32);column(delete_time);null"`
 }
 
+type ResourceTempathRel struct {
+	Id              int64  `orm:"pk;auto;column(id)"`
+	ResourceId      string `orm:"size(256);column(resource_id)"`
+	ResourcePath    string `orm:"size(512);column(resource_path)"`
+}
+
 func CreateDb() bool {
 	BConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
@@ -83,7 +89,7 @@ func CreateDb() bool {
 		orm.RegisterModelWithPrefix(prefix,
 			new(GiteeUserInfo), new(GiteeTokenInfo),
 			new(ResourceInfo), new(ResourceConfigPath),
-			new(UserResourceEnv),
+			new(UserResourceEnv), new(ResourceTempathRel),
 		)
 		logs.Info("table create success!")
 		errosyn := orm.RunSyncdb("default", false, true)

@@ -169,12 +169,8 @@ type AuthCode struct {
 }
 
 func GetGiteeInfo(authCode AuthCode, rui *RespUserInfo) {
-	redirectUri := beego.AppConfig.String("gitee::oauth2_callback_url")
 	clientSecret := beego.AppConfig.String("gitee::client_secret")
 	clientId := beego.AppConfig.String("gitee::client_id")
-	if len(authCode.RedirectUri) < 1 {
-		authCode.RedirectUri = redirectUri
-	}
 	var giteeToken GiteeTokenInfo
 	GiteePostOauthToken(authCode.AuthCode, clientId, authCode.RedirectUri, clientSecret, &giteeToken)
 	if len(giteeToken.AccessToken) > 1 {
