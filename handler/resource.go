@@ -288,7 +288,7 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
-	gitUrl := fmt.Sprintf(downloadUrl + "?file=%s", fPath)
+	gitUrl := fmt.Sprintf(downloadUrl+"?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
 	resp, err := http.Get(gitUrl)
 	if err != nil {
@@ -846,5 +846,144 @@ func QueryUserResourceEnv(ure *models.UserResourceEnv) {
 	queryErr := models.QueryUserResourceEnv(ure, "Id")
 	if queryErr != nil {
 		logs.Error("QueryUserResourceEnv, queryErr: ", queryErr)
+	}
+}
+
+func SaveResourceTemplate(rr ReqResource) {
+	rtr := models.ResourceTempathRel{ResourceId: rr.ResourceId, ResourcePath: rr.EnvResource}
+	tempRelErr := models.QueryResourceTempathRel(&rtr, "ResourceId", "ResourcePath")
+	if rtr.Id == 0 {
+		logs.Info("tempRelErr: ", tempRelErr)
+		rtr.ResourceId = rr.ResourceId
+		rtr.ResourcePath = rr.EnvResource
+		num, inErr := models.InsertResourceTempathRel(&rtr)
+		if inErr != nil {
+			logs.Error("inErr: ", inErr, ",num: ", num)
+		}
+	}
+}
+
+func ClearInvaildResource() error {
+	// 1. Data initialization
+	rtr, num, err := models.QueryResourceTempathRelAll()
+	if len(rtr) == 0 {
+		logs.Info("err: ", err, ",num: ", num)
+		return err
+	}
+	for _, rt := range rtr {
+		rr := ReqResource{EnvResource: rt.ResourcePath, UserId: 1000000000,
+			ContactEmail: "", ForceDelete: 1, ResourceId: rt.ResourceId}
+		yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
+		downLock.Lock()
+		downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
+		downLock.Unlock()
+		if downErr != nil {
+			logs.Error("File download failed, path: ", rr.EnvResource)
+			return downErr
+		}
+		content := ParseTmpl(yamlDir, rr, localPath)
+		// 2. Query unused instances
+		var (
+			objList *unstructured.UnstructuredList
+			gvk     *schema.GroupVersionKind
+			dr      dynamic.ResourceInterface
+		)
+		obj := &unstructured.Unstructured{}
+		_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(content, nil, obj)
+		if err != nil {
+			logs.Error("failed to get GVK, err: ", err)
+			return err
+		}
+		dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
+		if err != nil {
+			logs.Error("failed to get dr: ", err)
+			return err
+		}
+		// store db
+		config := new(YamlConfig)
+		err = yaml1.Unmarshal(content, config)
+		if err != nil {
+			logs.Error("yaml1.Unmarshal, err: ", err)
+			return err
+		}
+		DelInvaildResource(objList, dr, config, obj)
+	}
+	return nil
+}
+
+func DelInvaildResource(objList *unstructured.UnstructuredList, dr dynamic.ResourceInterface,
+	config *YamlConfig, obj *unstructured.Unstructured) {
+	err := error(nil)
+	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logs.Error("objList: ", objList)
+	} else {
+		PrintJsonList(objList)
+		apiVersion := objList.GetAPIVersion()
+		if config.ApiVersion == apiVersion {
+			if len(objList.Items) > 0 {
+				RecIterList(objList.Items, obj, dr)
+			}
+		}
+	}
+}
+
+func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstructured, dr dynamic.ResourceInterface) {
+	for _, items := range listData {
+		metadata, ok := ParsingMap(items.Object, "metadata")
+		if !ok {
+			continue
+		}
+		name, ok := ParsingMapStr(metadata, "name")
+		if !ok {
+			continue
+		}
+		status, ok := ParsingMap(items.Object, "status")
+		if !ok {
+			continue
+		}
+		conditions, ok := ParsingMapSlice(status, "conditions")
+		if !ok {
+			continue
+		}
+		rls := ResListStatus{ServerCreatedFlag: false, ServerReadyFlag: false,
+			ServerInactiveFlag: false, ServerRecycledFlag: false}
+		for _, cond := range conditions {
+			conds := cond.(map[string]interface{})
+			typex, ok := ParsingMapStr(conds, "type")
+			if !ok {
+				continue
+			}
+			switch typex {
+			case "ServerCreated":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerCreatedFlag = true
+				}
+			case "ServerReady":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerReadyFlag = true
+				}
+			case "ServerInactive":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerInactiveFlag = true
+				}
+			case "ServerRecycled":
+				status, ok := ParsingMapStr(conds, "status")
+				if ok && status == "True" {
+					rls.ServerRecycledFlag = true
+				}
+			}
+		}
+		if !rls.ServerReadyFlag && rls.ServerRecycledFlag {
+			delErr := dr.Delete(context.TODO(), name, metav1.DeleteOptions{})
+			if delErr != nil {
+				logs.Error("delete, err: ", delErr)
+			} else {
+				logs.Info("Data deleted successfully, name: ", name)
+			}
+		}
 	}
 }

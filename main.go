@@ -6,6 +6,7 @@ import (
 	"playground_backend/controllers"
 	"playground_backend/models"
 	_ "playground_backend/routers"
+	"playground_backend/task"
 )
 
 func init() {
@@ -21,6 +22,16 @@ func main() {
 		println("error: Database initialization failed")
 		return
 	}
+	// Initialize a scheduled task
+	taskOk := task.InitTask()
+	if !taskOk {
+		println("error: Timing task initialization failed, the program ends")
+		task.StopTask()
+		return
+	}
+	// single run
+	task.StartTask()
+	defer task.StopTask()
 	//common.ReadFileToEntry()
 	//common.DesString("")
 	beego.ErrorController(&controllers.ErrorController{})

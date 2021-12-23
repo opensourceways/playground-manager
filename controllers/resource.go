@@ -74,6 +74,7 @@ func (u *CrdResourceControllers) Post() {
 	var rri = new(handler.ResResourceInfo)
 	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId,
 		ContactEmail: rp.ContactEmail, ForceDelete: rp.ForceDelete, ResourceId: rp.ResourceId}
+	handler.SaveResourceTemplate(rr)
 	handler.CreateEnvResource(rr, rri)
 	if rri.UserId > 0 {
 		if rri.Status == 0 {
