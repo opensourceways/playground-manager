@@ -37,19 +37,20 @@ type GiteeTokenInfo struct {
 }
 
 type ResourceInfo struct {
-	Id           int64  `orm:"pk;auto;column(id)"`
-	UserId       int64  `orm:"column(user_id);index" description:"用户id"`
-	ResourceName string `orm:"size(256);column(res_name);unique"`
-	Subdomain    string `orm:"size(256);column(sub_domain)"`
-	UserName     string `orm:"size(256);column(user_name)"`
-	PassWord     string `orm:"size(256);column(pass_word)"`
-	ResourId     string `orm:"size(256);column(res_id)"`
-	KindName     string `orm:"size(256);column(kind_name)"`
-	RemainTime   int64  `orm:"colnum(remain_time)"`
-	CompleteTime int64  `orm:"colnum(complete_time)"`
-	CreateTime   string `orm:"size(32);column(create_time);"`
-	UpdateTime   string `orm:"size(32);column(update_time);null"`
-	DeleteTime   string `orm:"size(32);column(delete_time);null"`
+	Id            int64  `orm:"pk;auto;column(id)"`
+	UserId        int64  `orm:"column(user_id);index" description:"用户id"`
+	ResourceName  string `orm:"size(256);column(res_name);unique"`
+	ResourceAlias string `orm:"size(256);column(res_alias);unique"`
+	Subdomain     string `orm:"size(256);column(sub_domain)"`
+	UserName      string `orm:"size(256);column(user_name)"`
+	PassWord      string `orm:"size(256);column(pass_word)"`
+	ResourId      string `orm:"size(256);column(res_id)"`
+	KindName      string `orm:"size(256);column(kind_name)"`
+	RemainTime    int64  `orm:"colnum(remain_time)"`
+	CompleteTime  int64  `orm:"colnum(complete_time)"`
+	CreateTime    string `orm:"size(32);column(create_time);"`
+	UpdateTime    string `orm:"size(32);column(update_time);null"`
+	DeleteTime    string `orm:"size(32);column(delete_time);null"`
 }
 
 type ResourceConfigPath struct {
@@ -72,9 +73,11 @@ type UserResourceEnv struct {
 }
 
 type ResourceTempathRel struct {
-	Id              int64  `orm:"pk;auto;column(id)"`
-	ResourceId      string `orm:"size(256);column(resource_id)"`
-	ResourcePath    string `orm:"size(512);column(resource_path)"`
+	Id           int64  `orm:"pk;auto;column(id)"`
+	ResourceId   string `orm:"size(256);column(resource_id)"`
+	ResourcePath string `orm:"size(512);column(resource_path)"`
+	ResPoolSize  int    `orm:"colnum(pool_size);default(5)" description:"每个课程当前已申请的资源空闲数量，默认：5"`
+	ResAlarmSize int    `orm:"colnum(alarm_size);default(1)" description:"每个课程当前已空闲的数量低于当前值，就开始告警，默认：1"`
 }
 
 func CreateDb() bool {
