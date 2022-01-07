@@ -70,7 +70,7 @@ func UpdateResourceTempathRel(eoi *ResourceTempathRel, fields ...string) error {
 
 func QueryResourceTempathRelAll() (ite []ResourceTempathRel, num int64, err error) {
 	o := orm.NewOrm()
-	num, err = o.Raw("select resource_id,resource_path"+
+	num, err = o.Raw("select *"+
 		" from pg_resource_tempath_rel").QueryRows(&ite)
 	if err == nil && num > 0 {
 		logs.Info("QueryResourceTempathRelAll, pg_resource_tempath_rel, search result: ", num)

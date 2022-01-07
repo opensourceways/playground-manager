@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"io/ioutil"
@@ -24,6 +25,7 @@ var Pool = NUmStr + CharStr + SpecStr
 
 const DATE_FORMAT = "2006-01-02 15:04:05"
 const DATE_T_FORMAT = "2006-01-02T15:04:05"
+const DATE_T_Z_FORMAT = "2006-01-02T15:04:05Z"
 
 func GetCurTime() string {
 	return time.Now().Format(DATE_FORMAT)
@@ -112,6 +114,14 @@ func PraseTimeTint(tsStr string) int64 {
 func LocalTimeToUTC(strTime string) time.Time {
 	local, _ := time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
 	return local
+}
+
+func GetTZHTime(hours time.Duration) string {
+	now := time.Now()
+	h, _ := time.ParseDuration("-1h")
+	dateTime := now.Add(hours * h).Format(DATE_T_Z_FORMAT)
+	fmt.Println("dateTime: ", dateTime)
+	return dateTime
 }
 
 func AesString(content []byte) (strs string) {
