@@ -76,8 +76,8 @@ type ResourceTempathRel struct {
 	Id           int64  `orm:"pk;auto;column(id)"`
 	ResourceId   string `orm:"size(256);column(resource_id)"`
 	ResourcePath string `orm:"size(512);column(resource_path)"`
-	ResPoolSize  int    `orm:"colnum(pool_size);default(20)" description:"每个课程当前已申请的资源空闲数量，默认：20"`
-	ResAlarmSize int    `orm:"colnum(alarm_size);default(5)" description:"每个课程当前已空闲的数量低于当前值，就开始告警，默认：5"`
+	ResPoolSize  int    `orm:"colnum(pool_size);default(5)" description:"每个课程当前已申请的资源空闲数量，默认：5"`
+	ResAlarmSize int    `orm:"colnum(alarm_size);default(1)" description:"每个课程当前已空闲的数量低于当前值，就开始告警，默认：1"`
 }
 
 func CreateDb() bool {
