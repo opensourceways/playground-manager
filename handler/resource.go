@@ -178,7 +178,7 @@ func ResName(tplPath string) string {
 	return pathSub
 }
 
-func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, itr InitTmplResource) {
+func QueryTmpData(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, itr *InitTmplResource) {
 	userInfo := models.GiteeUserInfo{UserId: rr.UserId}
 	userErr := models.QueryGiteeUserInfo(&userInfo, "UserId")
 	if userInfo.UserId == 0 {
@@ -189,35 +189,70 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	resourceName := ResName(rr.EnvResource)
 	resName := "resources-" + rr.ResourceId + "-" + resourceName + "-" + strconv.FormatInt(rr.UserId, 10)
 	resAlias := ""
-	if len(itr.Name) > 1 {
-		resAlias = itr.Name
+	eoi := models.ResourceInfo{ResourceName: resName}
+	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
+	if eoi.Id > 0 {
+		rtp.Subdomain = eoi.Subdomain
+		rtp.NamePassword = fmt.Sprintf("%s:%s", eoi.UserName, eoi.PassWord)
+		rtp.UserId = userInfo.UserLogin
+		rtp.Name = eoi.ResourceAlias
+		rtp.ContactEmail = rr.ContactEmail
+		itr.Subdomain = eoi.Subdomain
+		itr.NamePassword = fmt.Sprintf("%s:%s", eoi.UserName, eoi.PassWord)
+		itr.UserId = userInfo.UserLogin
+		itr.Name = eoi.ResourceAlias
+		itr.ContactEmail = rr.ContactEmail
 	} else {
-		resAlias = "res" + common.EncryptMd5(resName)
+		logs.Error("QueryTmpData, queryErr: ", queryErr)
+		resAlias = "res" + rr.ResourceId + "-" + resourceName + "-" +
+			strconv.FormatInt(time.Now().Unix(), 10) + common.RandomString(32)
+		resAlias = "res" + common.EncryptMd5(resAlias)
+		subDomain := resName + rr.EnvResource + common.RandomString(32)
+		subDomain = common.EncryptMd5(subDomain)
+		if ok := common.IsLetter(rune(subDomain[0])); !ok {
+			subDomain = strings.Replace(subDomain, subDomain[:3], "res", 1)
+		}
+		userName := common.RandomString(32)
+		passWord := common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userName)))
+		userName = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(subDomain)))
+		userName = userName[:16]
+		namePassword := userName + ":" + passWord
+		rtp.Subdomain = subDomain
+		rtp.NamePassword = namePassword
+		rtp.UserId = userInfo.UserLogin
+		rtp.Name = resAlias
+		rtp.ContactEmail = rr.ContactEmail
+		itr.Subdomain = subDomain
+		itr.NamePassword = namePassword
+		itr.UserId = userInfo.UserLogin
+		itr.Name = resAlias
+		itr.ContactEmail = rr.ContactEmail
 	}
+	cr.UserId = strconv.FormatInt(rr.UserId, 10)
+	cr.CourseId = rr.ResourceId
+	cr.ResourceName = rr.EnvResource
+}
+
+func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, itr *InitTmplResource) {
+	userInfo := models.GiteeUserInfo{UserId: rr.UserId}
+	userErr := models.QueryGiteeUserInfo(&userInfo, "UserId")
+	if userInfo.UserId == 0 {
+		logs.Error("userErr:", userErr)
+		return
+	}
+	cr.LoginName = userInfo.UserLogin
+	resourceName := ResName(rr.EnvResource)
+	resName := "resources-" + rr.ResourceId + "-" + resourceName + "-" + strconv.FormatInt(rr.UserId, 10)
+	resAlias := ""
+	resAlias = itr.Name
 	cr.UserId = strconv.FormatInt(rr.UserId, 10)
 	cr.CourseId = rr.ResourceId
 	cr.ResourceName = rr.EnvResource
 	rtp.Name = resAlias
 	subDomain := ""
-	if len(itr.Subdomain) > 1 {
-		subDomain = itr.Subdomain
-	} else {
-		subDomain = resName + rr.EnvResource + common.RandomString(32)
-		subDomain = common.EncryptMd5(subDomain)
-		if ok := common.IsLetter(rune(subDomain[0])); !ok {
-			subDomain = strings.Replace(subDomain, subDomain[:3], "res", 1)
-		}
-	}
+	subDomain = itr.Subdomain
 	namePassword := ""
-	if len(itr.NamePassword) > 1 {
-		namePassword = itr.NamePassword
-	} else {
-		userName := common.RandomString(32)
-		passWord := common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userName)))
-		userName = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(subDomain)))
-		userName = userName[:16]
-		namePassword = userName + ":" + passWord
-	}
+	namePassword = itr.NamePassword
 	nameList := strings.Split(namePassword, ":")
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
@@ -251,12 +286,16 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	}
 }
 
-func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr InitTmplResource, cr *CourseResources) []byte {
+func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr *InitTmplResource, cr *CourseResources, queryFlag bool) []byte {
 	if len(rr.ContactEmail) < 1 {
 		rr.ContactEmail = beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
 	}
 	rtp := ReqTmplParase{ContactEmail: rr.ContactEmail}
-	InitReqTmplPrarse(&rtp, rr, cr, itr)
+	if queryFlag {
+		QueryTmpData(&rtp, rr, cr, itr)
+	} else {
+		InitReqTmplPrarse(&rtp, rr, cr, itr)
+	}
 	var templates *template.Template
 	var allFiles []string
 	files, dirErr := ioutil.ReadDir(yamlDir)
@@ -828,53 +867,6 @@ func AddTmplResourceList(items unstructured.Unstructured) {
 	}
 }
 
-func CreateRes(rri *ResResourceInfo, dr dynamic.ResourceInterface,
-	config *YamlConfig, obj *unstructured.Unstructured,
-	objCreate *unstructured.Unstructured, cr *CourseResources, itr InitTmplResource) error {
-	err := error(nil)
-	logs.Info("To start creating a resource, the resource name:", obj.GetName())
-	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
-	if err != nil {
-		logs.Error("Create err: ", err)
-		return err
-	}
-	//PrintJsonStr(objCreate)
-	curCreateTime := ""
-	rls := GetResInfo(objCreate, dr, config, obj, true)
-	rri.Status = 0
-	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
-		if rls.ServerBoundFlag {
-			curCreateTime = common.TimeTConverStr(rls.ServerBoundTime)
-			rri.Status = 1
-		}
-		rri.EndPoint = rls.InstanceEndpoint
-		if !rls.ServerBoundFlag {
-			objCreate = UpdateObjData(cr, objCreate, itr, false)
-			_, err = dr.UpdateStatus(context.TODO(), objCreate, metav1.UpdateOptions{})
-		}
-	}
-	if len(rls.ErrorInfo) > 2 {
-		logs.Error("err: ", rls.ErrorInfo)
-	}
-	eoi := models.ResourceInfo{ResourceAlias: config.Metadata.Name}
-	queryErr := models.QueryResourceInfo(&eoi, "ResourceAlias")
-	if eoi.Id > 0 {
-		if len(curCreateTime) > 1 {
-			curTime := common.PraseTimeInt(curCreateTime)
-			eoi.CreateTime = curCreateTime
-			eoi.CompleteTime = curTime + config.Spec.RecycleAfterSeconds
-		}
-		eoi.KindName = config.Kind
-		eoi.RemainTime = config.Spec.RecycleAfterSeconds
-		models.UpdateResourceInfo(&eoi, "CreateTime", "KindName", "RemainTime", "CompleteTime")
-		ParaseResData(objCreate, rri, eoi)
-	} else {
-		logs.Error("queryErr: ", queryErr)
-		return queryErr
-	}
-	return nil
-}
-
 func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured,
 	objCreate *unstructured.Unstructured, cr *CourseResources, itr InitTmplResource) error {
@@ -921,30 +913,10 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 		err = dr.Delete(context.TODO(), objGetData.GetName(), metav1.DeleteOptions{})
 		if err != nil {
 			logs.Error("delete, err: ", err)
-			return err
 		}
-		objCreate, err = dr.Create(context.TODO(), objGetData, metav1.CreateOptions{})
-		if err != nil {
-			logs.Error("Create err: ", err)
-			return err
-		}
-		//PrintJsonStr(objCreate)
-		rls = GetResInfo(objCreate, dr, config, obj, true)
-		rri.Status = 0
-		if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
-			if rls.ServerBoundFlag {
-				curCreateTime = common.TimeTConverStr(rls.ServerBoundTime)
-				rri.Status = 1
-				rri.EndPoint = rls.InstanceEndpoint
-			}
-		}
-		if len(rls.ErrorInfo) > 2 {
-			logs.Error("err: ", rls.ErrorInfo)
-		}
-	} else {
-		rri.Status = 1
+		return errors.New("deleted")
 	}
-	eoi := models.ResourceInfo{ResourceAlias: obj.GetName()}
+	eoi := models.ResourceInfo{ResourceAlias: objGetData.GetName()}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceAlias")
 	if eoi.Id > 0 {
 		if len(curCreateTime) > 1 {
@@ -956,58 +928,6 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 				eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
 				models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
 			}
-		}
-		ParaseResData(obj, rri, eoi)
-	} else {
-		logs.Error("queryErr: ", queryErr)
-		return queryErr
-	}
-	return nil
-}
-
-func ForceCreateRes(rri *ResResourceInfo, objUpdate *unstructured.Unstructured, dr dynamic.ResourceInterface,
-	config *YamlConfig, obj *unstructured.Unstructured,
-	objCreate *unstructured.Unstructured, cr *CourseResources, itr InitTmplResource) error {
-	err := error(nil)
-	curCreateTime := ""
-	logs.Info("Forced deletion of resources begins, resource name:", obj.GetName())
-	err = dr.Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
-	if err != nil {
-		logs.Error("delete, err: ", err)
-		return err
-	}
-	logs.Info("Forcibly delete the resource, create the resource again, the resource name:", obj.GetName())
-	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
-	if err != nil {
-		logs.Error("Create err: ", err)
-		return err
-	}
-	//PrintJsonStr(objCreate)
-	rri.Status = 0
-	rls := GetResInfo(objCreate, dr, config, obj, true)
-	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
-		if rls.ServerBoundFlag {
-			curCreateTime = common.TimeTConverStr(rls.ServerBoundTime)
-			rri.Status = 1
-			rri.EndPoint = rls.InstanceEndpoint
-		}
-		if !rls.ServerBoundFlag {
-			objCreate = UpdateObjData(cr, objCreate, itr, false)
-			objUpdate, err = dr.UpdateStatus(context.TODO(), objCreate, metav1.UpdateOptions{})
-		}
-	}
-	if len(rls.ErrorInfo) > 2 {
-		logs.Error("err: ", rls.ErrorInfo)
-	}
-	eoi := models.ResourceInfo{ResourceAlias: obj.GetName()}
-	queryErr := models.QueryResourceInfo(&eoi, "ResourceAlias")
-	if eoi.Id > 0 {
-		if len(curCreateTime) > 1 {
-			curTime := common.PraseTimeInt(curCreateTime)
-			eoi.CreateTime = curCreateTime
-			eoi.RemainTime = config.Spec.RecycleAfterSeconds
-			eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
-			models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
 		}
 		ParaseResData(obj, rri, eoi)
 	} else {
@@ -1041,19 +961,19 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 	if CoursePoolVar.InitialFlag {
 		courseData, ok := CoursePoolVar.CourseMap[rr.ResourceId]
 		if ok {
-			if len(courseData) > 0 {
-				// 1. Allocate unused resources
-				itr, ok := <-courseData
+			for {
+				itr := <-courseData
 				itr.UserId = strconv.FormatInt(rr.UserId, 10)
 				downLock.Lock()
 				downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
 				downLock.Unlock()
 				if downErr != nil {
 					logs.Error("File download failed, path: ", rr.EnvResource)
-					return downErr
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					break
 				}
 				cr := CourseResources{}
-				yamlData = ParseTmpl(yamlDir, rr, localPath, itr, &cr)
+				yamlData = ParseTmpl(yamlDir, rr, localPath, &itr, &cr, false)
 				var (
 					err       error
 					objGet    *unstructured.Unstructured
@@ -1066,60 +986,50 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 				if err != nil {
 					logs.Error("failed to get GVK, err: ", err)
-					return err
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					break
 				}
 				dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 				if err != nil {
 					logs.Error("failed to get dr: ", err)
-					return err
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					break
 				}
 				// store db
 				config := new(YamlConfig)
 				err = ymV2.Unmarshal(yamlData, config)
 				if err != nil {
 					logs.Error("yaml1.Unmarshal, err: ", err)
-					return err
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					break
 				}
 				objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 				if err != nil {
-					logs.Error("resName:", obj.GetName(), "err: ", err)
-					err = CreateRes(rri, dr, config, obj, objCreate, &cr, itr)
-					if err != nil {
-						logs.Error("CreateRes, err: ", err)
-						return err
-					}
-					return nil
+					logs.Error("ApplyPoolInstance, dr.Get, err: ", err)
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					continue
 				} else {
-					if rr.ForceDelete == 2 {
-						err = ForceCreateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
-						if err != nil {
-							logs.Error("UpdateRes err: ", err)
-							return err
-						}
-						return nil
-					} else {
-						err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
-						if err != nil {
-							logs.Error("UpdateRes err: ", err)
-							return err
-						}
-						if ok {
-							AddResPool(rr.ResourceId, rr.EnvResource)
-						}
-						return nil
+					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
+					if err != nil {
+						logs.Error("UpdateRes err: ", err)
+						AddResPool(rr.ResourceId, rr.EnvResource)
+						continue
 					}
+					AddResPool(rr.ResourceId, rr.EnvResource)
+					break
 				}
-			} else {
-				return errors.New("Instance creation failed")
 			}
 		} else {
 			return errors.New("Instance creation failed")
 		}
+	} else {
+		return errors.New("Instance creation failed")
 	}
 	return nil
 }
 
-func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath string, yamlData []byte, cr *CourseResources) error {
+func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath string,
+	yamlData []byte, cr *CourseResources, itr *InitTmplResource) error {
 	var (
 		err       error
 		objGet    *unstructured.Unstructured
@@ -1128,7 +1038,6 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 		dr        dynamic.ResourceInterface
 	)
 	rri.Status = 0
-	itr := InitTmplResource{}
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
@@ -1152,25 +1061,32 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 		logs.Notice("Get an instance from the prepared instance, err: ", err)
 		err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 		if err != nil {
-			logs.Error("UpdateInstance, err: ", err)
-			err = CreateRes(rri, dr, config, obj, objCreate, cr, itr)
-			if err != nil {
-				logs.Error("CreateRes, err: ", err)
-				return err
-			}
+			logs.Error("ApplyPoolInstance, err: ", err)
+			return err
 		}
 	} else {
 		if rr.ForceDelete == 2 {
-			err = ForceCreateRes(rri, objGet, dr, config, obj, objCreate, cr, itr)
+			resName := objGet.GetName()
+			err = dr.Delete(context.TODO(), resName, metav1.DeleteOptions{})
 			if err != nil {
-				logs.Error("UpdateRes err: ", err)
+				logs.Error("delete, err: ", err)
+			} else {
+				logs.Info("resName: ", resName, ", Forced to delete. rr.ForceDelete: ", rr.ForceDelete)
+			}
+			rr.ForceDelete = 1
+			err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
+			if err != nil {
+				logs.Error("ApplyPoolInstance, err: ", err)
 				return err
 			}
 		} else {
-			err = UpdateRes(rri, objGet, dr, config, obj, objCreate, cr, itr)
+			err = UpdateRes(rri, objGet, dr, config, obj, objCreate, cr, *itr)
 			if err != nil {
-				logs.Error("UpdateRes err: ", err)
-				return err
+				err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
+				if err != nil {
+					logs.Error("ApplyPoolInstance, err: ", err)
+					return err
+				}
 			}
 		}
 	}
@@ -1189,8 +1105,8 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	}
 	itr := InitTmplResource{}
 	cr := CourseResources{}
-	yamlData := ParseTmpl(yamlDir, rr, localPath, itr, &cr)
-	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr)
+	yamlData := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, true)
+	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr, &itr)
 	if createErr != nil {
 		logs.Error("createErr: ", createErr)
 		return
@@ -1200,7 +1116,7 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 // Poll resource status
 func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string, cr *CourseResources, itr InitTmplResource) error {
 	var (
-		err error
+		err       error
 		gvk       *schema.GroupVersionKind
 		dr        dynamic.ResourceInterface
 		objUpdate *unstructured.Unstructured
@@ -1228,7 +1144,7 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string, cr *
 	curCreateTime := ""
 	objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		logs.Error("err: ", err, ",resourceName: " ,obj.GetName())
+		logs.Error("err: ", err, ",resourceName: ", obj.GetName())
 		return err
 	}
 	rls := GetResInfo(objGet, dr, config, obj, true)
@@ -1291,8 +1207,9 @@ func GetEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	itr.Subdomain = ri.Subdomain
 	itr.ContactEmail = rr.ContactEmail
 	itr.UserId = strconv.FormatInt(rr.UserId, 10)
+	itr.NamePassword = fmt.Sprintf("%s:%s", ri.UserName, ri.PassWord)
 	cr := CourseResources{}
-	content := ParseTmpl(yamlDir, rr, localPath, itr, &cr)
+	content := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, true)
 	GetCreateRes(content, rri, rr.ResourceId, &cr, itr)
 }
 
@@ -1356,7 +1273,7 @@ func ClearInvaildResource() error {
 		}
 		itr := InitTmplResource{}
 		cr := CourseResources{}
-		content := ParseTmpl(yamlDir, rr, localPath, itr, &cr)
+		content := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, false)
 		// 2. Query unused instances
 		var (
 			objList *unstructured.UnstructuredList
