@@ -607,7 +607,14 @@ func RecIter(rls *ResListStatus, objGetData *unstructured.Unstructured,
 	}
 }
 
-func UpdateObjData(cr *CourseResources, objGetData *unstructured.Unstructured, itr InitTmplResource, flag bool) *unstructured.Unstructured {
+func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData *unstructured.Unstructured,
+	itr InitTmplResource, flag bool) *unstructured.Unstructured {
+	err := error(nil)
+	objGetData, err = dr.Get(context.TODO(), objGetData.GetName(), metav1.GetOptions{})
+	if err != nil {
+		logs.Error("objGetData: ", objGetData)
+		return objGetData
+	}
 	metadata, ok := ParsingMap(objGetData.Object, "metadata")
 	if !ok {
 		logs.Error("metadata does not exist, ", metadata)
@@ -875,9 +882,11 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	curCreateTime := ""
 	isDelete := false
 	rls := ResListStatus{}
+	containerTimeout, ok := beego.AppConfig.Int64("image::container_timeout")
+	if ok != nil {
+		containerTimeout = 20
+	}
 	for {
-		objGetData = UpdateObjData(cr, objGetData, itr, false)
-		_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 		rls = GetResInfo(objGetData, dr, config, obj, true)
 		if rls.ServerRecycledFlag {
 			isDelete = true
@@ -886,10 +895,29 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 		if len(rls.ErrorInfo) > 2 {
 			logs.Error("rls.ErrorInfo: ", rls.ErrorInfo)
 		}
-		if (!rls.ServerReadyFlag && !rls.ServerRecycledFlag) || rls.ServerReadyFlag {
+		if !rls.ServerReadyFlag && !rls.ServerRecycledFlag {
+			if len(rls.ServerReadyTime) > 1 {
+				if (common.PraseTimeInt(common.GetCurTime()) -
+					common.PraseTimeInt(common.TimeTConverStr(rls.ServerReadyTime))) <= containerTimeout {
+					logs.Info("1.Environment is preparing...resName: ", objGetData.GetName())
+					time.Sleep(time.Second)
+				} else {
+					isDelete = true
+					break
+				}
+			} else {
+				logs.Info("2.Environment is preparing...resName: ", objGetData.GetName())
+				time.Sleep(time.Second)
+			}
+		}
+		if rls.ServerReadyFlag {
+			logs.Info("Mirror environment is ready...resName: ", objGetData.GetName())
+			objGetData = UpdateObjData(dr, cr, objGetData, itr, false)
+			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
 	}
+	rls = GetResInfo(objGetData, dr, config, obj, true)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		if rls.ServerBoundFlag {
 			curCreateTime = common.TimeTConverStr(rls.ServerBoundTime)
@@ -906,7 +934,8 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	if (common.PraseTimeInt(common.GetCurTime()) - common.PraseTimeInt(curCreateTime)) > config.Spec.RecycleAfterSeconds {
 		isDelete = true
 		rri.Status = 0
-		logs.Info(common.PraseTimeInt(common.GetCurTime())-common.PraseTimeInt(curCreateTime), config.Spec.RecycleAfterSeconds)
+		logs.Info("Created image has timed out",
+			common.PraseTimeInt(common.GetCurTime())-common.PraseTimeInt(curCreateTime), config.Spec.RecycleAfterSeconds)
 	}
 	logs.Info("Start of updating resources, resource name:", obj.GetName())
 	if isDelete {
@@ -921,13 +950,12 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	if eoi.Id > 0 {
 		if len(curCreateTime) > 1 {
 			curTime := common.PraseTimeInt(curCreateTime)
-			remainTime := eoi.CompleteTime - curTime
-			if remainTime < 0 {
-				eoi.CreateTime = curCreateTime
-				eoi.RemainTime = config.Spec.RecycleAfterSeconds
-				eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
-				models.UpdateResourceInfo(&eoi, "CreateTime", "RemainTime", "CompleteTime")
-			}
+			eoi.CreateTime = curCreateTime
+			eoi.RemainTime = config.Spec.RecycleAfterSeconds
+			eoi.CompleteTime = config.Spec.RecycleAfterSeconds + curTime
+			eoi.KindName = config.Kind
+			eoi.RemainTime = config.Spec.RecycleAfterSeconds
+			models.UpdateResourceInfo(&eoi, "CreateTime", "KindName", "RemainTime", "CompleteTime")
 		}
 		ParaseResData(obj, rri, eoi)
 	} else {
@@ -1156,10 +1184,16 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string, cr *
 			rri.EndPoint = rls.InstanceEndpoint
 		}
 		if !rls.ServerBoundFlag {
-			objGet = UpdateObjData(cr, objGet, itr, false)
+			objGet = UpdateObjData(dr, cr, objGet, itr, false)
 			objUpdate, err = dr.Update(context.TODO(), objGet, metav1.UpdateOptions{})
 			if err != nil {
 				logs.Error("upErr: ", err, objUpdate)
+			}
+			rls = GetResInfo(objGet, dr, config, obj, true)
+			if rls.ServerReadyFlag && rls.ServerBoundFlag {
+				rri.Status = 1
+				curCreateTime = common.TimeTConverStr(rls.ServerBoundTime)
+				rri.EndPoint = rls.InstanceEndpoint
 			}
 		}
 	}
