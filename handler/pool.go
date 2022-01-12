@@ -325,7 +325,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 
 func PrintResPool() {
 	logs.Info("================Start printing resource pool data========================")
-	logs.Info("Initial test completion mark: ", CoursePoolVar.InitialFlag)
+	logs.Info("Initial completion mark: ", CoursePoolVar.InitialFlag)
 	if CoursePoolVar.InitialFlag {
 		for key, val := range CoursePoolVar.CourseMap {
 			logs.Info("Course id:", key, ",len(val): ", len(val))
