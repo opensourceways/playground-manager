@@ -736,6 +736,10 @@ func GetResInfo(objGetData *unstructured.Unstructured, dr dynamic.ResourceInterf
 
 func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstructured,
 	dr dynamic.ResourceInterface) {
+	containerTimeout, ok := beego.AppConfig.Int64("image::container_timeout")
+	if ok != nil {
+		containerTimeout = 20
+	}
 	for _, items := range listData {
 		metadata, ok := ParsingMap(items.Object, "metadata")
 		if !ok {
@@ -772,6 +776,10 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 				if ok && status == "True" {
 					rls.ServerReadyFlag = true
 				}
+				lastTransitionTime, ok := ParsingMapStr(conds, "lastTransitionTime")
+				if ok {
+					rls.ServerReadyTime = lastTransitionTime
+				}
 			case "ServerInactive":
 				status, ok := ParsingMapStr(conds, "status")
 				if ok && status == "True" {
@@ -789,12 +797,26 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 				}
 			}
 		}
+		deleteFlag := false
+		if !rls.ServerReadyFlag {
+			if len(rls.ServerReadyTime) > 1 {
+				if (common.PraseTimeInt(common.GetCurTime()) -
+					common.PraseTimeInt(common.TimeTConverStr(rls.ServerReadyTime))) > containerTimeout {
+					logs.Error("Create image timeout is removed, resName: ", name)
+					deleteFlag = true
+				}
+			}
+		}
 		if !rls.ServerReadyFlag && rls.ServerRecycledFlag {
+			logs.Error("Images are recycled after use, resName: ", name)
+			deleteFlag = true
+		}
+		if deleteFlag {
 			delErr := dr.Delete(context.TODO(), name, metav1.DeleteOptions{})
 			if delErr != nil {
 				logs.Error("delete, err: ", delErr)
 			} else {
-				logs.Info("Data deleted successfully, name: ", name)
+				logs.Info("Data deleted successfully, resName: ", name)
 			}
 		}
 		if !rls.ServerBoundFlag && rls.ServerReadyFlag {
@@ -1295,19 +1317,16 @@ func ClearInvaildResource() error {
 		return err
 	}
 	for _, rt := range rtr {
-		rr := ReqResource{EnvResource: rt.ResourcePath, UserId: 1000000000,
-			ContactEmail: "", ForceDelete: 1, ResourceId: rt.ResourceId}
 		yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 		downLock.Lock()
-		downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
+		downErr, localPath := DownLoadTemplate(yamlDir, rt.ResourcePath)
 		downLock.Unlock()
 		if downErr != nil {
-			logs.Error("File download failed, path: ", rr.EnvResource)
+			logs.Error("File download failed, path: ", rt.ResourcePath)
 			return downErr
 		}
-		itr := InitTmplResource{}
-		cr := CourseResources{}
-		content := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, false)
+		rd := ResourceData{EnvResource: rt.ResourcePath, ResourceId: rt.ResourceId}
+		content := PoolParseTmpl(yamlDir, &rd, localPath)
 		// 2. Query unused instances
 		var (
 			objList *unstructured.UnstructuredList
@@ -1320,7 +1339,7 @@ func ClearInvaildResource() error {
 			logs.Error("failed to get GVK, err: ", err)
 			return err
 		}
-		dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
+		dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rt.ResourceId)
 		if err != nil {
 			logs.Error("failed to get dr: ", err)
 			return err
@@ -1343,13 +1362,12 @@ func DelInvaildResource(objList *unstructured.UnstructuredList, dr dynamic.Resou
 	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logs.Error("objList: ", objList)
-	} else {
-		PrintJsonList(objList)
-		apiVersion := objList.GetAPIVersion()
-		if config.ApiVersion == apiVersion {
-			if len(objList.Items) > 0 {
-				RecIterList(objList.Items, obj, dr)
-			}
+		return
+	}
+	apiVersion := objList.GetAPIVersion()
+	if config.ApiVersion == apiVersion {
+		if len(objList.Items) > 0 {
+			RecIterList(objList.Items, obj, dr)
 		}
 	}
 }
