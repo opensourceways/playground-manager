@@ -228,7 +228,6 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	if err != nil {
 		logs.Error("objList: ", objList)
 	} else {
-		PrintJsonList(objList)
 		apiVersion := objList.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
 			if len(objList.Items) > 0 {
