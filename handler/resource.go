@@ -1015,17 +1015,16 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 		courseData, ok := CoursePoolVar.CourseMap[rr.ResourceId]
 		if ok {
 			for {
-				itr := <-courseData
-				logs.Info("Information obtained by the resource pool: ", itr)
-				itr.UserId = strconv.FormatInt(rr.UserId, 10)
 				downLock.Lock()
 				downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
 				downLock.Unlock()
 				if downErr != nil {
 					logs.Error("File download failed, path: ", rr.EnvResource)
-					AddResPool(rr.ResourceId, rr.EnvResource)
 					break
 				}
+				itr := <-courseData
+				logs.Info("Information obtained by the resource pool: ", itr)
+				itr.UserId = strconv.FormatInt(rr.UserId, 10)
 				cr := CourseResources{}
 				yamlData = ParseTmpl(yamlDir, rr, localPath, &itr, &cr, false)
 				var (

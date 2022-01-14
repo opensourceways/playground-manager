@@ -267,21 +267,12 @@ func AddResPool(resourceId, envResource string) {
 		return
 	}
 	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource}
-	courseData, ok := CoursePoolVar.CourseMap[resourceId]
+	_, ok := CoursePoolVar.CourseMap[resourceId]
 	if ok {
-		if len(courseData) == 0 {
-			CoursePoolVar.CourseMap[resourceId] = make(chan InitTmplResource, rtr.ResPoolSize)
-			for i := 0; i < rtr.ResPoolSize; i++ {
-				CreatePoolResource(&rd)
-			}
-		} else {
-			CreatePoolResource(&rd)
-		}
+		CreatePoolResource(&rd)
 	} else {
 		CoursePoolVar.CourseMap[resourceId] = make(chan InitTmplResource, rtr.ResPoolSize)
-		for i := 0; i < rtr.ResPoolSize; i++ {
-			CreatePoolResource(&rd)
-		}
+		CreatePoolResource(&rd)
 	}
 }
 
