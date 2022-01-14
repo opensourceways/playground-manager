@@ -21,11 +21,6 @@ func ClearInstanceTask(clInvalidInstance string) {
 	toolbox.AddTask("ClearInvaildResource", invalidTask)
 }
 
-func AddInstanceToPoolTask(addValidInstances string) {
-	validTask := toolbox.NewTask("AddInstanceToPool", addValidInstances, handler.AddInstanceToPool)
-	toolbox.AddTask("AddInstanceToPool", validTask)
-}
-
 //InitTask Timing task initialization
 func InitTask() bool {
 	// Get the original yaml data
@@ -33,11 +28,6 @@ func InitTask() bool {
 	if clInvalidInstanFlag == 1 && err == nil {
 		clInvalidInstance := beego.AppConfig.String("crontab::cl_invalid_instances")
 		ClearInstanceTask(clInvalidInstance)
-	}
-	addValidInstancesFlag, err := beego.AppConfig.Int("crontab::add_valid_instances_flag")
-	if addValidInstancesFlag == 1 && err == nil {
-		addValidInstances := beego.AppConfig.String("crontab::add_valid_instances")
-		AddInstanceToPoolTask(addValidInstances)
 	}
 	return true
 }

@@ -22,6 +22,7 @@ type RequestParameter struct {
 }
 
 func (c *CrdResourceControllers) RetData(resp ResData) {
+	logs.Info("Create Resource Response: ", resp)
 	c.Data["json"] = resp
 	c.ServeJSON()
 }
