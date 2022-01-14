@@ -735,7 +735,7 @@ func GetResInfo(objGetData *unstructured.Unstructured, dr dynamic.ResourceInterf
 }
 
 func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstructured,
-	dr dynamic.ResourceInterface) {
+	dr dynamic.ResourceInterface, addFlag bool) {
 	containerTimeout, ok := beego.AppConfig.Int64("image::container_timeout")
 	if ok != nil {
 		containerTimeout = 20
@@ -807,7 +807,10 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 				}
 			}
 		}
-		if !rls.ServerReadyFlag && rls.ServerRecycledFlag {
+		logs.Info("The status information of the current resource is: ", name,
+			",ServerRecycledFlag: ", rls.ServerRecycledFlag, ",ServerReadyFlag: ",
+			rls.ServerReadyFlag, ", ServerBoundFlag: ", rls.ServerBoundFlag)
+		if rls.ServerRecycledFlag {
 			logs.Error("Images are recycled after use, resName: ", name)
 			deleteFlag = true
 		}
@@ -819,7 +822,7 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 				logs.Info("Data deleted successfully, resName: ", name)
 			}
 		}
-		if !rls.ServerBoundFlag && rls.ServerReadyFlag {
+		if addFlag && !rls.ServerBoundFlag && rls.ServerReadyFlag {
 			resPoolLock.Lock()
 			AddTmplResourceList(items)
 			resPoolLock.Unlock()
@@ -1013,6 +1016,7 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 		if ok {
 			for {
 				itr := <-courseData
+				logs.Info("Information obtained by the resource pool: ", itr)
 				itr.UserId = strconv.FormatInt(rr.UserId, 10)
 				downLock.Lock()
 				downErr, localPath := DownLoadTemplate(yamlDir, rr.EnvResource)
@@ -1367,7 +1371,7 @@ func DelInvaildResource(objList *unstructured.UnstructuredList, dr dynamic.Resou
 	apiVersion := objList.GetAPIVersion()
 	if config.ApiVersion == apiVersion {
 		if len(objList.Items) > 0 {
-			RecIterList(objList.Items, obj, dr)
+			RecIterList(objList.Items, obj, dr, false)
 		}
 	}
 }
