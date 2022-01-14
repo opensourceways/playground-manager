@@ -232,9 +232,9 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 		if config.ApiVersion == apiVersion {
 			if len(objList.Items) > 0 {
 				if len(objList.Items) > rt.ResPoolSize {
-					RecIterList(objList.Items[:rt.ResPoolSize], obj, dr)
+					RecIterList(objList.Items[:rt.ResPoolSize], obj, dr, true)
 				} else {
-					RecIterList(objList.Items, obj, dr)
+					RecIterList(objList.Items, obj, dr, true)
 				}
 			}
 		}
@@ -348,7 +348,3 @@ func InitialResourcePool() {
 	PrintResPool()
 }
 
-func AddInstanceToPool() error {
-	InitialResourcePool()
-	return nil
-}
