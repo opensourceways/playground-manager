@@ -267,8 +267,8 @@ func AddResPool(resourceId, envResource string) {
 		return
 	}
 	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource}
-	_, ok := CoursePoolVar.CourseMap[resourceId]
-	if ok {
+	resPool, ok := CoursePoolVar.CourseMap[resourceId]
+	if ok && len(resPool) < rtr.ResPoolSize {
 		CreatePoolResource(&rd)
 	} else {
 		CoursePoolVar.CourseMap[resourceId] = make(chan InitTmplResource, rtr.ResPoolSize)
@@ -338,4 +338,3 @@ func InitialResourcePool() {
 	// 4. Print resource pool data
 	PrintResPool()
 }
-
