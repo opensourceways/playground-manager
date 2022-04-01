@@ -498,15 +498,18 @@ func RecIter(rls *ResListStatus, objGetData *unstructured.Unstructured,
 	metadata, ok := ParsingMap(objGetData.Object, "metadata")
 	if !ok {
 		logs.Error("metadata does not exist, ", metadata)
+		rls.ServerErroredFlag = true
 		return
 	}
 	name, ok := ParsingMapStr(metadata, "name")
 	if !ok {
 		logs.Error("name does not exist, ", name)
+		rls.ServerErroredFlag = true
 		return
 	}
 	if name != obj.GetName() {
 		logs.Error("obj.GetName does not exist, ", obj.GetName())
+		rls.ServerErroredFlag = true
 		return
 	}
 	if !updateFlag {
@@ -723,6 +726,7 @@ func GetResInfo(objGetData *unstructured.Unstructured, dr dynamic.ResourceInterf
 	objGetData, err = dr.Get(context.TODO(), objGetData.GetName(), metav1.GetOptions{})
 	if err != nil {
 		logs.Error("objGetData: ", objGetData)
+		rls.ServerErroredFlag = true
 	} else {
 		PrintJsonStr(objGetData)
 		apiVersion := objGetData.GetAPIVersion()
@@ -913,7 +917,7 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	}
 	for {
 		rls = GetResInfo(objGetData, dr, config, obj, true)
-		if rls.ServerRecycledFlag {
+		if rls.ServerRecycledFlag || rls.ServerErroredFlag {
 			isDelete = true
 			break
 		}
