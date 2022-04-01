@@ -14,6 +14,9 @@ type CrdResourceControllers struct {
 
 type RequestParameter struct {
 	ResourceId   string `json:"resourceId"`
+	CourseId     string `json:"courseId"`
+	ChapterId    string `json:"chapterId"`
+	Backend      string `json:"backend"`
 	TemplatePath string `json:"templatePath"`
 	UserId       int64  `json:"userId"`
 	ContactEmail string `json:"contactEmail"`
@@ -47,17 +50,29 @@ func (u *CrdResourceControllers) Post() {
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
 	logs.Info("created crd parameters: ", string(u.Ctx.Input.RequestBody))
 	json.Unmarshal(u.Ctx.Input.RequestBody, &rp)
-	if len(rp.TemplatePath) < 1 || rp.UserId < 1 || len(rp.ResourceId) < 1 {
+	if (len(rp.TemplatePath) < 1 && len(rp.Backend) < 1) ||
+		rp.UserId < 1 || len(rp.CourseId) < 1 {
 		resData.Code = 400
 		resData.Mesg = "Please check whether the request parameters are correct"
 		logs.Error("created crd parameters: ", rp)
 		u.RetData(resData)
+		crd := models.Courses{CourseId: rp.CourseId}
+		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+			"", "failed", "Please check whether the request parameters are correct",
+			1, 1, &crd, &ccp)
 		return
 	}
 	if len(rp.Token) < 1 {
 		resData.Code = 401
 		resData.Mesg = "Unauthorized authentication information"
 		u.RetData(resData)
+		crd := models.Courses{CourseId: rp.CourseId}
+		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+			"Application Resources", "", "failed",
+			"Unauthorized authentication information",
+			1, 1, &crd, &ccp)
 		return
 	} else {
 		gui := models.GiteeUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
@@ -66,16 +81,44 @@ func (u *CrdResourceControllers) Post() {
 			resData.Mesg = "Authority authentication failed"
 			resData.Code = 403
 			u.RetData(resData)
+			crd := models.Courses{CourseId: rp.CourseId}
+			ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+			handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+				"", "filed", "Authority authentication failed",
+				1, 1, &crd, &ccp)
 			return
 		}
 	}
 	if rp.ForceDelete == 0 {
 		rp.ForceDelete = 1
 	}
+	// Query resource node information
+	rcp := models.ResourceConfigPath{ResourcePath: rp.TemplatePath, EulerBranch: rp.Backend}
 	var rri = new(handler.ResResourceInfo)
 	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId,
-		ContactEmail: rp.ContactEmail, ForceDelete: rp.ForceDelete, ResourceId: rp.ResourceId}
-	handler.SaveResourceTemplate(rr)
+		ContactEmail: rp.ContactEmail, ForceDelete: rp.ForceDelete,
+		ResourceId: rcp.ResourceId, CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+	rri.CourseId = rp.CourseId
+	rri.ChapterId = rp.ChapterId
+	rcpErr := rr.SaveCourseAndResRel(&rcp)
+	if rcpErr != nil {
+		resData.Code = 403
+		resData.Mesg = "The corresponding instance resource is not currently configured"
+		logs.Error("created crd parameters: ", rp)
+		u.RetData(resData)
+		crd := models.Courses{CourseId: rp.CourseId}
+		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+			"Application Resources", "", "failed",
+			"The corresponding instance resource is not currently configured",
+			1, 1, &crd, &ccp)
+		return
+	}
+	rp.TemplatePath = rcp.ResourcePath
+	rp.ResourceId = rcp.ResourceId
+	rp.Backend = rcp.EulerBranch
+	rr.EnvResource = rcp.ResourcePath
+	rr.ResourceId = rcp.ResourceId
 	handler.CreateEnvResource(rr, rri)
 	if rri.UserId > 0 {
 		if rri.Status == 0 {
@@ -83,7 +126,12 @@ func (u *CrdResourceControllers) Post() {
 		} else {
 			resData.Code = 200
 		}
-		userResId := handler.CreateUserResourceEnv(rr, rp.ResourceId)
+		crd := models.Courses{CourseId: rp.CourseId}
+		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+			"success", "User learning courses apply for instance resources successfully",
+			1, 1, &crd, &ccp)
+		userResId := handler.CreateUserResourceEnv(rr)
 		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Mesg = "success"
@@ -91,6 +139,11 @@ func (u *CrdResourceControllers) Post() {
 		resData.ResInfo = *rri
 		resData.Code = 501
 		resData.Mesg = "Failed to create resource, need to request resource again"
+		crd := models.Courses{CourseId: rp.CourseId}
+		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+			"failed", "Failed to create resource, need to request resource again",
+			1, 1, &crd, &ccp)
 	}
 	u.RetData(resData)
 	return
@@ -131,13 +184,22 @@ func (u *CrdResourceControllers) Get() {
 		return
 	} else {
 		var rri = new(handler.ResResourceInfo)
-		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId, ResourceId: ure.ResourceId}
+		rr := handler.ReqResource{EnvResource: ure.TemplatePath, UserId: ure.UserId,
+			ResourceId: ure.ResourceId, CourseId: ure.CourseId,
+			ChapterId: ure.ChapterId, ContactEmail: ure.ContactEmail}
+		rri.CourseId = ure.CourseId
+		rri.ChapterId = ure.ChapterId
 		handler.GetEnvResource(rr, rri)
 		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Code = 200
 		resData.Mesg = "success"
 		u.RetData(resData)
+		crd := models.Courses{CourseId: ure.CourseId}
+		ccp := models.CoursesChapter{CourseId: ure.CourseId, ChapterId: ure.ChapterId}
+		handler.WriteCourseData(ure.UserId, ure.CourseId, ure.ChapterId, "Query application resources", rri.ResName,
+			"success", "Query application resource success",
+			1, 1, &crd, &ccp)
 	}
 	return
 }

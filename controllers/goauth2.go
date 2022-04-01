@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
 )
@@ -73,7 +74,7 @@ type Oauth2CallBackLinksControllers struct {
 }
 
 type CallBackUrlData struct {
-	ClientId    string `json:"clientId"`
+	ClientId string `json:"clientId"`
 }
 
 type GetResData struct {
@@ -148,6 +149,12 @@ func (u *Oauth2AuthenticationControllers) Post() {
 	handler.GetGiteeInfo(authCode, &rui)
 	logs.Info("rui: ", rui)
 	if rui.UserId > 0 {
+		sd := handler.StatisticsData{UserId: rui.UserId, UserName: rui.UserLogin,
+			OperationTime: common.GetCurTime(), EventType: "login", State: "success", StateMessage: "success"}
+		sdErr := handler.StatisticsLog(sd)
+		if sdErr != nil {
+			logs.Error("Oauth2AuthenticationControllers, post, sdErr: ", sdErr)
+		}
 		oauthInfo.Code = 200
 		oauthInfo.Mesg = "success"
 	} else {
@@ -212,6 +219,13 @@ func (u *UserInfoControllers) Get() {
 		gud.Mesg = "success"
 		gud.Code = 200
 		gud.UserInfo = rui
+		sd := handler.StatisticsData{UserId: rui.UserId, UserName: rui.UserLogin,
+			OperationTime: common.GetCurTime(), EventType: "Query login information",
+			State: "success", StateMessage: "success"}
+		sdErr := handler.StatisticsLog(sd)
+		if sdErr != nil {
+			logs.Error("UserInfoControllers, post, sdErr: ", sdErr)
+		}
 		u.RetData(gud)
 	}
 	return

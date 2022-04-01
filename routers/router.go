@@ -16,6 +16,8 @@ func init() {
 	beego.Router("/playground/user/information", &controllers.UserInfoControllers{})
 	// The user creates crd resources and returns the result of creating resources
 	beego.Router("/playground/crd/resource", &controllers.CrdResourceControllers{})
+	// Bind the course/chapter selected by the user
+	beego.Router("/playground/users/course/chapter", &controllers.CourseChapterControllers{})
 	// Health check interface
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})

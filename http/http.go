@@ -68,7 +68,7 @@ func HTTPGitGet(url string) (col map[string]interface{}, err error) {
 		logs.Error("err: ", err)
 		return nil, err
 	}
-	logs.Info("body: \n", string(body))
+	//logs.Info("body: \n", string(body))
 	err = json.Unmarshal(body, &col)
 	if err != nil {
 		logs.Error("HTTPGitGet,err: ", err)
