@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 	// 1. Initialize memory resources
-	handler.InitialMemoryRes()
+	handler.NewCoursePool(0)
 	handler.InitialResourcePool()
 	// Initialize a scheduled task
 	taskOk := task.InitTask()

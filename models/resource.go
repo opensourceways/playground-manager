@@ -43,6 +43,12 @@ func InsertUserResourceEnv(eoi *UserResourceEnv) (int64, error) {
 	return id, err
 }
 
+func UpdateUserResourceEnv(eoi *UserResourceEnv, fields ...string) error {
+	o := orm.NewOrm()
+	_, err := o.Update(eoi, fields...)
+	return err
+}
+
 func QueryResourceTempathRel(eoi *ResourceTempathRel, field ...string) error {
 	o := orm.NewOrm()
 	err := o.Read(eoi, field...)
@@ -56,12 +62,24 @@ func InsertResourceTempathRel(eoi *ResourceTempathRel) (int64, error) {
 	return id, err
 }
 
+func UpdateResourceTempathRel(eoi *ResourceTempathRel, fields ...string) error {
+	o := orm.NewOrm()
+	_, err := o.Update(eoi, fields...)
+	return err
+}
+
+func DeleteResourceTempathRel(eoi *ResourceTempathRel, fields ...string) error {
+	o := orm.NewOrm()
+	_, err := o.Delete(eoi, fields...)
+	return err
+}
+
 func QueryResourceTempathRelAll() (ite []ResourceTempathRel, num int64, err error) {
 	o := orm.NewOrm()
 	num, err = o.Raw("select *" +
 		" from pg_resource_tempath_rel").QueryRows(&ite)
 	if err == nil && num > 0 {
-		logs.Info("QueryResourceTempathRelAll, pg_resource_tempath_rel, search result: ", num)
+		logs.Info("QueryResourceTempathRelAll, num: ", num)
 	} else {
 		logs.Error("QueryResourceTempathRelAll, err: ", err)
 	}
