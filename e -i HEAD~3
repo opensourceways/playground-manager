@@ -1,0 +1,241 @@
+[33mcommit efea33049a9e45a325426000332004011279e4ee[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Wed Apr 6 14:09:27 2022 +0800
+
+    update conf
+
+[33mcommit a8c00ce32a393219d704640144b205365e856fb3[m
+Merge: f6b11f4 834099d
+Author: zhangjianjun <wusen@126.com>
+Date:   Wed Apr 6 11:53:54 2022 +0800
+
+    The second phase of playground-manager services is online: 1. Added specific course services; 2. Added resource pool information for each course; 3. Added multiple third-party account logins;
+
+[33mcommit f6b11f40b27e11a218cc6e95243ce0cc177f6f82[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Wed Apr 6 11:49:40 2022 +0800
+
+    The second phase of playground-manager services is online: 1. Added specific course services; 2. Added resource pool information for each course; 3. Added multiple third-party account logins;
+
+[33mcommit 834099d3427b12d7eb0d0d87b1ff6ec5df2392e4[m
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Sat Apr 2 19:22:22 2022 +0800
+
+    Update product_app.conf
+
+[33mcommit 9a0f7cf07cdca3e76351dfcde51bd797d44ce647[m
+Merge: a76d22a 424b0da
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Fri Apr 1 19:14:07 2022 +0800
+
+    Merge pull request #19 from zhang-jian-jun/main
+    
+    Add a condition to prevent the creation of redundant crd resources
+
+[33mcommit 424b0daf50abf4fe0b493d449415216a2ff2bb94[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Apr 1 19:08:43 2022 +0800
+
+    Add a condition to prevent the creation of redundant crd resources
+
+[33mcommit a76d22a28e81bba6772decb76255b89114ff509b[m
+Merge: a48bff0 273bc36
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Fri Jan 14 14:53:30 2022 +0800
+
+    Merge pull request #17 from zhang-jian-jun/main
+    
+    The resources that have been added to the resource pool have been logically optimized and adjusted
+
+[33mcommit 273bc36b9b23f2257d11b61b8860ddf831298b37[m
+Merge: ab678f2 1e9a79a
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 14 14:48:06 2022 +0800
+
+    Merge branch 'main' of https://github.com/zhang-jian-jun/playground-manager into main
+
+[33mcommit ab678f28aa7743b9757faf7dd97d1ebdf07106b7[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 14 14:47:40 2022 +0800
+
+    The resources that have been added to the resource pool have been logically optimized and adjusted
+
+[33mcommit a48bff093095ae81679eba90db17a6d1f84add87[m
+Merge: 91fb884 1e9a79a
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Fri Jan 14 11:34:11 2022 +0800
+
+    Merge pull request #16 from zhang-jian-jun/main
+    
+    Remove the timed task added to the resource pool
+
+[33mcommit 1e9a79adf0689eb32b2efaff13f6f20fbbb0355e[m
+Merge: b38b4f0 91fb884
+Author: zhangjianjun <841670711@qq.com>
+Date:   Fri Jan 14 11:29:08 2022 +0800
+
+    Merge branch 'opensourceways:main' into main
+
+[33mcommit b38b4f0f384d5cd5bf67cb90f1ab3120c71a4b26[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 14 11:16:32 2022 +0800
+
+    Remove the timed task added to the resource pool
+
+[33mcommit 91fb884ed2b05e8ca726e8ee43c45e21482dcccd[m
+Merge: cb808da 56729b8
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Thu Jan 13 11:28:11 2022 +0800
+
+    Merge pull request #15 from zhang-jian-jun/main
+    
+    Logic optimization for recycling mirror resources
+
+[33mcommit 56729b8c0045c527e9eaf7b33cd74b27300f8206[m
+Merge: 6727181 cb808da
+Author: zhangjianjun <841670711@qq.com>
+Date:   Thu Jan 13 10:50:25 2022 +0800
+
+    Merge branch 'opensourceways:main' into main
+
+[33mcommit 672718144de97274c1c71dac0ade312e300a1335[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Thu Jan 13 10:49:25 2022 +0800
+
+    Logic optimization for recycling mirror resources
+
+[33mcommit cb808dad783d11aac2df6102ff5971d15c37dbbd[m
+Merge: bb45d30 7eafdd2
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Wed Jan 12 16:42:24 2022 +0800
+
+    Merge pull request #14 from zhang-jian-jun/main
+    
+    Turn on the Clear invalid mirror environment switch
+
+[33mcommit 7eafdd2841467c09315ae87b72efaf5cdd52f187[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Wed Jan 12 16:40:03 2022 +0800
+
+    Turn on the Clear invalid mirror environment switch
+
+[33mcommit bb45d3051742c353979d17ba2be9a263c1967010[m
+Merge: f2c8168 40607a1
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Wed Jan 12 16:01:48 2022 +0800
+
+    Merge pull request #13 from zhang-jian-jun/main
+    
+    After the queue data is empty, apply for logical modification of mirror resources
+
+[33mcommit 40607a1baf33cdf736dfbd9c8a2d6b811699b5c1[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Wed Jan 12 15:51:40 2022 +0800
+
+    After the queue data is empty, apply for logical modification of mirror resources
+
+[33mcommit f2c8168069678c2b31fa314b9f3963bd69e11225[m
+Merge: c35e058 9f98298
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Mon Jan 10 15:24:56 2022 +0800
+
+    Merge pull request #12 from zhang-jian-jun/main
+    
+    Modification logic: Every time you apply for a resource instance, data is taken from the resource pool and added to the resource pool
+
+[33mcommit 9f98298c4acb374eb42e0538de17b3cbc554be3e[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Mon Jan 10 15:10:30 2022 +0800
+
+    Modification logic: Every time you apply for a resource instance, data is taken from the resource pool and added to the resource pool
+
+[33mcommit c35e058ba5cf4f242af97f31933b64a7b9bdeda7[m
+Merge: ef4099e 5d19b56
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Fri Jan 7 14:23:23 2022 +0800
+
+    Merge pull request #11 from zhang-jian-jun/main
+    
+    Adjust the business structure and increase the instance resource pool
+
+[33mcommit 5d19b56b98a65ae0c792dd332bebe25b1ee49c99[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 7 11:44:20 2022 +0800
+
+    Modify the default size of the resource pool
+
+[33mcommit a2dd6d528a829c0b752742254e353a6ee9a4f21a[m
+Merge: 74dd09e ef4099e
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 7 11:37:33 2022 +0800
+
+    Merge branch 'main' of https://github.com/zhang-jian-jun/playground-manager into main
+
+[33mcommit 74dd09ee8493c15d78c0a7720f83cc6ebd76c1a4[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Jan 7 11:35:52 2022 +0800
+
+    Adjust the business structure and increase the instance resource pool
+
+[33mcommit ef4099eb13782b17416752397048618062f8f83a[m
+Merge: 400be48 7168ba6
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Fri Dec 24 17:50:26 2021 +0800
+
+    Merge pull request #10 from zhang-jian-jun/main
+    
+    1. Turn off the scheduled task of deleting invalid instances
+
+[33mcommit 7168ba6d6cd847e6945ae99a3b90ca60d23c26e2[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Fri Dec 24 17:45:50 2021 +0800
+
+    1. Turn off the scheduled task of deleting invalid instances
+
+[33mcommit 400be48f0f203a7bef90fb984ce13fb8b2132420[m
+Merge: df866ae 927552c
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Thu Dec 23 17:02:31 2021 +0800
+
+    Merge pull request #9 from zhang-jian-jun/main
+    
+    Timed task: delete invalid instances
+
+[33mcommit 927552c4ffc67db7d20111e7f04aef5382a2ebfb[m
+Merge: 9b07a06 df866ae
+Author: zhangjianjun <wusen@126.com>
+Date:   Thu Dec 23 16:55:51 2021 +0800
+
+    Merge branch 'main' of https://github.com/zhang-jian-jun/playground-manager into main
+
+[33mcommit 9b07a06ffece27139cbb8cecda5c480c47fb8fe5[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Thu Dec 23 16:55:46 2021 +0800
+
+    Timed task: delete invalid instances
+
+[33mcommit df866ae3b384dbc23dd1de703f530fbfdf5d8eda[m
+Merge: 0c53429 ea66354
+Author: Hu Sheng <tommylikehu@gmail.com>
+Date:   Tue Dec 14 10:31:18 2021 +0800
+
+    Merge pull request #8 from zhang-jian-jun/main
+    
+    Modify the template file import path
+
+[33mcommit ea6635452f10adbc17834df0352ab0108382e82c[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Tue Dec 14 10:23:44 2021 +0800
+
+    Modify the template file import path
+
+[33mcommit b54bf87e39058c9f270a8cdab85705a8ce68d8aa[m
+Merge: fa38af4 0c53429
+Author: zhangjianjun <841670711@qq.com>
+Date:   Tue Dec 14 10:13:18 2021 +0800
+
+    Merge branch 'opensourceways:main' into main
+
+[33mcommit fa38af48c9dd3779a1e7afb39de2e48637b758f3[m
+Author: zhangjianjun <wusen@126.com>
+Date:   Tue 
