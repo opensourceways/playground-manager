@@ -222,14 +222,6 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	} else {
 		logs.Info("Resource is being created, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	}
-	if rls.ServerErroredFlag {
-		delErr := dr.Delete(context.TODO(), objCreate.GetName(), metav1.DeleteOptions{})
-		if delErr != nil {
-			logs.Error("delete, err: ", delErr)
-		} else {
-			logs.Info("Data deleted successfully, resName: ", objCreate.GetName())
-		}
-	}
 	return nil
 }
 
