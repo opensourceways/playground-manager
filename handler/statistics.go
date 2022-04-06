@@ -43,7 +43,7 @@ func CreateStatistLog(logFile string) (string, error) {
 	configPath := beego.AppConfig.String("statistics::local_dir")
 	common.CreateDir(configPath)
 	if len(logFile) == 0 {
-		logFile = beego.AppConfig.String("statistics::log_file")
+		logFile = common.GetCurDate() + "_" + beego.AppConfig.String("statistics::log_file")
 	}
 	filePath := filepath.Join(configPath, logFile)
 	if !common.FileExists(filePath) {

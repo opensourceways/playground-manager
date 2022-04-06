@@ -1391,7 +1391,7 @@ func SaveResourceTemplate(rr *ReqResource) error {
 	rtr := models.ResourceTempathRel{ResourceId: rr.ResourceId,
 		ResourcePath: rr.EnvResource, CourseId: rr.CourseId}
 	tempRelErr := models.QueryResourceTempathRel(&rtr,
-		"CourseId")
+		"CourseId", "ResourcePath", "ResourceId")
 	if rtr.Id == 0 {
 		logs.Info("tempRelErr: ", tempRelErr)
 		rtr.ResourceId = rr.ResourceId
