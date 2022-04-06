@@ -384,6 +384,7 @@ func InitialResourcePool() {
 	PrintResPool()
 }
 
+
 func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 	for _, rt := range rtr {
 		rd := ResourceData{ResourceId: rt.ResourceId,
@@ -438,3 +439,4 @@ func ApplyCoursePoolTask() error {
 	PrintResPool()
 	return nil
 }
+

@@ -43,6 +43,7 @@ func InitTask() bool {
 		clInvalidInstance := beego.AppConfig.String("crontab::cl_invalid_instances")
 		ClearInstanceTask(clInvalidInstance)
 	}
+
 	// Synchronized course list and chapter information
 	syncCourseFlag, err := beego.AppConfig.Int("crontab::sync_course_flag")
 	if syncCourseFlag == 1 && err == nil {
