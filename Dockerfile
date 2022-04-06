@@ -3,7 +3,7 @@ LABEL maintainer="zhangjianjun"
 # build binary
 RUN mkdir -p /go/src/gitee.com/openeuler/playground-manager
 COPY . /go/src/gitee.com/openeuler/playground-manager
-RUN cd /go/src/gitee.com/openeuler/playground-manager && CGO_ENABLED=1 go build -v -o ./playground-manager main.go
+RUN cd /go/src/gitee.com/openeuler/playground-manager && go mod tidy && CGO_ENABLED=1 go build -v -o ./playground-manager main.go
 
 # copy binary config and utils
 FROM openeuler/openeuler:21.03
