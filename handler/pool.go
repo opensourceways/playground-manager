@@ -21,6 +21,7 @@ import (
 	"playground_backend/models"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,8 @@ type ResourceData struct {
 	EnvResource  string
 	ResourceId   string
 	ResourceName string
+	CourseId     string
+	ResPoolSize  int
 }
 
 type InitTmplResource struct {
@@ -39,25 +42,61 @@ type InitTmplResource struct {
 }
 
 var CoursePoolVar = CoursePool{}
+var PoolSync sync.RWMutex
 
 type CoursePool struct {
 	InitialFlag bool
 	CourseMap   map[string]chan InitTmplResource
 }
 
-func InitialMemoryRes() {
-	CoursePoolVar.InitialFlag = false
-	CoursePoolVar.CourseMap = make(map[string]chan InitTmplResource, 0)
+func NewCoursePool(n int) {
+	CoursePoolVar = CoursePool{
+		CourseMap:   make(map[string]chan InitTmplResource, n),
+		InitialFlag: false,
+	}
+}
+func (c *CoursePool) Get(key string) (chan InitTmplResource, bool) {
+	PoolSync.RLock()
+	defer PoolSync.RUnlock()
+	v, existed := c.CourseMap[key]
+	return v, existed
+}
+
+func (c *CoursePool) Set(key string, v chan InitTmplResource) {
+	PoolSync.Lock()
+	defer PoolSync.Unlock()
+	c.CourseMap[key] = v
+}
+
+func (c *CoursePool) Delete(key string) {
+	PoolSync.Lock()
+	defer PoolSync.Unlock()
+	delete(c.CourseMap, key)
+}
+
+func (c *CoursePool) Len() int {
+	PoolSync.RLock()
+	defer PoolSync.RUnlock()
+	return len(c.CourseMap)
+}
+
+func (c *CoursePool) Each() {
+	PoolSync.RLock()
+	defer PoolSync.RUnlock()
+	for key, val := range c.CourseMap {
+		logs.Info("Course id:", key, ",len(val): ", len(val))
+		logs.Info("val:", val)
+	}
 }
 
 func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResources) {
 	resourceName := ResName(rd.EnvResource)
-	resName := "res" + rd.ResourceId + "-" + resourceName + "-" +
+	resName := "res" + rd.CourseId + "-" + rd.ResourceId + "-" + resourceName + "-" +
 		strconv.FormatInt(time.Now().Unix(), 10) + common.RandomString(32)
 	rtp.UserId = "default"
 	resName = "res" + common.EncryptMd5(resName)
 	cr.UserId = rtp.UserId
-	cr.CourseId = rd.ResourceId
+	cr.CourseId = rd.CourseId
 	cr.ResourceName = ResName(rd.EnvResource)
 	rtp.Name = resName
 	rd.ResourceName = resName
@@ -165,18 +204,31 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("yaml1.Unmarshal, err: ", err)
 		return err
 	}
-	logs.Info("To start creating a resource, the resource name:", obj.GetName())
+	coursePool, _ := CoursePoolVar.Get(rd.CourseId)
+	if len(coursePool) >= rd.ResPoolSize {
+		logs.Info("The current resources are sufficient and there is "+
+			"no need to create new resources, len(coursePool): ", len(coursePool), ",CourseId: ", rd.CourseId)
+		return errors.New("too many resources")
+	}
+	logs.Info("To start creating a resource, the resource name:", obj.GetName(), ",len(coursePool) = ", len(coursePool))
 	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
 		logs.Error("Create err: ", err)
 		return err
 	}
-	//PrintJsonStr(objCreate)
 	rls := GetResInfo(objCreate, dr, config, obj, false)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		logs.Info("Resource created successfully, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	} else {
 		logs.Info("Resource is being created, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
+	}
+	if rls.ServerErroredFlag {
+		delErr := dr.Delete(context.TODO(), objCreate.GetName(), metav1.DeleteOptions{})
+		if delErr != nil {
+			logs.Error("delete, err: ", delErr)
+		} else {
+			logs.Info("Data deleted successfully, resName: ", objCreate.GetName())
+		}
 	}
 	return nil
 }
@@ -190,7 +242,9 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 		logs.Error("File download failed, path: ", rt.ResourcePath)
 		return downErr
 	}
-	rd := ResourceData{EnvResource: rt.ResourcePath, ResourceId: rt.ResourceId}
+	crs := CourseRes{CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
+	rd := ResourceData{EnvResource: rt.ResourcePath, ResourceId: rt.ResourceId,
+		CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 	content := PoolParseTmpl(yamlDir, &rd, localPath)
 	// 2. Query unused instances
 	var (
@@ -198,12 +252,17 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 		gvk     *schema.GroupVersionKind
 		dr      dynamic.ResourceInterface
 	)
-	initRes, ok := CoursePoolVar.CourseMap[rt.ResourceId]
+	//initRes, ok := CoursePoolVar.CourseMap[rt.CourseId]
+	initRes, ok := CoursePoolVar.Get(rt.CourseId)
 	if !ok {
 		resCh := make(chan InitTmplResource, rt.ResPoolSize)
-		CoursePoolVar.CourseMap[rt.ResourceId] = resCh
+		//CoursePoolVar.CourseMap[rt.CourseId] = resCh
+		CoursePoolVar.Set(rt.CourseId, resCh)
 	} else {
-		logs.Info("initRes: ", initRes)
+		if len(initRes) >= rt.ResPoolSize {
+			logs.Info("CourseId: ", rt.CourseId, ", loading finished: ", initRes)
+			return nil
+		}
 	}
 	err := errors.New("")
 	obj := &unstructured.Unstructured{}
@@ -231,11 +290,7 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 		apiVersion := objList.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
 			if len(objList.Items) > 0 {
-				if len(objList.Items) > rt.ResPoolSize {
-					RecIterList(objList.Items[:rt.ResPoolSize], obj, dr, true)
-				} else {
-					RecIterList(objList.Items, obj, dr, true)
-				}
+				RecIterList(objList.Items, obj, dr, true, crs)
 			}
 		}
 	}
@@ -259,21 +314,16 @@ func CreatePoolResource(rd *ResourceData) {
 	}
 }
 
-func AddResPool(resourceId, envResource string) {
-	rtr := models.ResourceTempathRel{ResourceId: resourceId, ResourcePath: envResource}
-	queryErr := models.QueryResourceTempathRel(&rtr, "ResourceId", "ResourcePath")
+func AddResPool(courseId, resourceId, envResource string) {
+	rtr := models.ResourceTempathRel{CourseId: courseId, ResourceId: resourceId, ResourcePath: envResource}
+	queryErr := models.QueryResourceTempathRel(&rtr, "CourseId", "ResourceId", "ResourcePath")
 	if queryErr != nil {
 		logs.Error("queryErr: ", queryErr)
 		return
 	}
-	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource}
-	resPool, ok := CoursePoolVar.CourseMap[resourceId]
-	if ok && len(resPool) < rtr.ResPoolSize {
-		CreatePoolResource(&rd)
-	} else {
-		CoursePoolVar.CourseMap[resourceId] = make(chan InitTmplResource, rtr.ResPoolSize)
-		CreatePoolResource(&rd)
-	}
+	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource,
+		CourseId: courseId, ResPoolSize: rtr.ResPoolSize}
+	CreatePoolResource(&rd)
 }
 
 func InitalResPool(rtr []models.ResourceTempathRel) {
@@ -286,26 +336,24 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		if queryErr != nil {
 			logs.Error("QueryResourceList, queryErr: ", queryErr)
 		}
-		rd := ResourceData{ResourceId: rt.ResourceId, EnvResource: rt.ResourcePath}
-		courseId, ok := CoursePoolVar.CourseMap[rt.ResourceId]
-		if !ok {
+		rd := ResourceData{ResourceId: rt.ResourceId,
+			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
+		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
+		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
+		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
-			CoursePoolVar.CourseMap[rt.ResourceId] = resCh
+			CoursePoolVar.Set(rt.CourseId, resCh)
 			for i := 0; i < rt.ResPoolSize; i++ {
 				CreatePoolResource(&rd)
 			}
 		} else {
-			// 1. Get existing resources
-			resCount := len(courseId)
-			if cap(courseId) == 0 {
-				resCh := make(chan InitTmplResource, rt.ResPoolSize)
-				CoursePoolVar.CourseMap[rt.ResourceId] = resCh
-			}
-			createResCount := rt.ResPoolSize - resCount
-			if createResCount > 0 {
-				for i := 0; i < createResCount; i++ {
+			for {
+				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
+				if len(coursePool) < rt.ResPoolSize {
 					CreatePoolResource(&rd)
+				} else {
+					break
 				}
 			}
 		}
@@ -316,17 +364,14 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 func PrintResPool() {
 	logs.Info("================Start printing resource pool data========================")
 	logs.Info("Initial completion mark: ", CoursePoolVar.InitialFlag)
-	if CoursePoolVar.InitialFlag {
-		for key, val := range CoursePoolVar.CourseMap {
-			logs.Info("Course id:", key, ",len(val): ", len(val))
-			logs.Info("val:", val)
-		}
-	}
+	CoursePoolVar.Each()
 	logs.Info("================End of printing resource pool data========================")
 }
 
 func InitialResourcePool() {
-	// 1. Query the resource data that needs to be initialized
+	// 1. sync course
+	SyncCourseData()
+	// 2. Query the resource data that needs to be initialized
 	rtr, num, queryErr := models.QueryResourceTempathRelAll()
 	if len(rtr) == 0 {
 		logs.Error("No curriculum resources need to "+
@@ -337,4 +382,59 @@ func InitialResourcePool() {
 	InitalResPool(rtr)
 	// 4. Print resource pool data
 	PrintResPool()
+}
+
+func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
+	for _, rt := range rtr {
+		rd := ResourceData{ResourceId: rt.ResourceId,
+			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
+		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
+		if !ok || cap(coursePool) == 0 {
+			// 1. Resource does not exist, create resource
+			resCh := make(chan InitTmplResource, rt.ResPoolSize)
+			CoursePoolVar.Set(rt.CourseId, resCh)
+			for i := 0; i < rt.ResPoolSize; i++ {
+				CreatePoolResource(&rd)
+			}
+		} else {
+			for {
+				coursePool, ok = CoursePoolVar.Get(rt.CourseId)
+				if ok {
+					if len(coursePool) < rt.ResPoolSize {
+						CreatePoolResource(&rd)
+					} else {
+						break
+					}
+				} else {
+					resCh := make(chan InitTmplResource, rt.ResPoolSize)
+					CoursePoolVar.Set(rt.CourseId, resCh)
+					for i := 0; i < rt.ResPoolSize; i++ {
+						CreatePoolResource(&rd)
+					}
+					break
+				}
+			}
+		}
+	}
+	CoursePoolVar.InitialFlag = true
+	return nil
+}
+
+func ApplyCoursePoolTask() error {
+	// 1. Query the resource data that needs to be initialized
+	rtr, num, queryErr := models.QueryResourceTempathRelAll()
+	if len(rtr) == 0 {
+		logs.Error("No curriculum resources need to "+
+			"build initial resources, num: ", num, ",queryErr: ", queryErr)
+		return queryErr
+	}
+	// 3. Query for available resources
+	appErr := ApplyCoursePool(rtr)
+	if appErr != nil {
+		logs.Error("appErr: ", appErr)
+		return appErr
+	}
+	// 4. Print resource pool data
+	PrintResPool()
+	return nil
 }
