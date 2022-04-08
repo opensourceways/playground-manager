@@ -121,6 +121,7 @@ func WriteStatistLog(filePath string, byteData []byte) error {
 		return err
 	}
 	_, err = f.Write(byteData)
+	_, err = f.Write([]byte("\n"))
 	return nil
 }
 
