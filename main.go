@@ -36,8 +36,6 @@ func main() {
 	// single run
 	task.StartTask()
 	defer task.StopTask()
-	//common.ReadFileToEntry()
-	//common.DesString("")
 	beego.ErrorController(&controllers.ErrorController{})
 	beego.Run()
 }
