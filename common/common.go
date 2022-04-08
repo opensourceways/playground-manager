@@ -26,6 +26,11 @@ var Pool = NUmStr + CharStr + SpecStr
 const DATE_FORMAT = "2006-01-02 15:04:05"
 const DATE_T_FORMAT = "2006-01-02T15:04:05"
 const DATE_T_Z_FORMAT = "2006-01-02T15:04:05Z"
+const DT_FORMAT = "2006-01-02"
+
+func GetCurDate() string {
+	return time.Now().Format(DT_FORMAT)
+}
 
 func GetCurTime() string {
 	return time.Now().Format(DATE_FORMAT)
