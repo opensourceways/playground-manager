@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/astaxie/beego"
 	"playground_backend/common"
 	"playground_backend/controllers"
 	"playground_backend/handler"
 	"playground_backend/models"
 	_ "playground_backend/routers"
 	"playground_backend/task"
+
+	"github.com/astaxie/beego"
 )
 
 func init() {
@@ -15,8 +16,8 @@ func init() {
 	common.LogInit()
 }
 
-
 func main() {
+
 	// init db
 	dbOk := models.Initdb()
 	if !dbOk {
@@ -37,6 +38,6 @@ func main() {
 	task.StartTask()
 	defer task.StopTask()
 	beego.ErrorController(&controllers.ErrorController{})
+
 	beego.Run()
 }
-
