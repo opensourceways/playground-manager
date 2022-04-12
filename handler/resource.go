@@ -445,9 +445,7 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	fileName := path.Base(fPath)
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
-	if os.Getenv("TEMPLATE_PATH") != "" {
-		downloadUrl = os.Getenv("TEMPLATE_PATH")
-	}
+
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
 	gitUrl := fmt.Sprintf(downloadUrl+"?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
