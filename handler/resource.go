@@ -6,11 +6,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"playground_backend/common"
+	"playground_backend/models"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	ymV2 "gopkg.in/yaml.v2"
-	"html/template"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,19 +33,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"playground_backend/common"
-	"playground_backend/models"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 var downLock sync.Mutex
+
 //var resPoolLock sync.Mutex
 
 type ReqTmplParase struct {
@@ -443,6 +445,9 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	fileName := path.Base(fPath)
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
+	if os.Getenv("TEMPLATE_PATH") != "" {
+		downloadUrl = os.Getenv("TEMPLATE_PATH")
+	}
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
 	gitUrl := fmt.Sprintf(downloadUrl+"?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)

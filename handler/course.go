@@ -435,14 +435,14 @@ func SyncCourse() error {
 	courseUrl := beego.AppConfig.String("courses::course_url")
 	chapterUrl := beego.AppConfig.String("courses::chapter_url")
 	chapterDetailUrl := beego.AppConfig.String("courses::chapter_detail_url")
-	if os.Getenv("course_url") != "" {
-		courseUrl = os.Getenv("course_url")
+	if os.Getenv("COURSE_URL") != "" {
+		courseUrl = os.Getenv("COURSE_URL")
 	}
-	if os.Getenv("chapter_url") != "" {
-		chapterUrl = os.Getenv("chapter_url")
+	if os.Getenv("CHAPTER_URL") != "" {
+		chapterUrl = os.Getenv("CHAPTER_URL")
 	}
-	if os.Getenv("chapter_detail_url") != "" {
-		chapterDetailUrl = os.Getenv("chapter_detail_url")
+	if os.Getenv("CHAPTER_DETAIL_URL") != "" {
+		chapterDetailUrl = os.Getenv("CHAPTER_DETAIL_URL")
 	}
 
 	body, resErr := http.HTTPGitGet(courseUrl)
