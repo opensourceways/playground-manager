@@ -2,14 +2,13 @@ package models
 
 import (
 	_ "database/sql"
-	"os"
-	"playground_backend/common"
-
 	_ "github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
+	"os"
+	"playground_backend/common"
 )
 
 //InitDb init database
@@ -25,11 +24,9 @@ func Initdb() bool {
 	dbuser := BConfig.String("mysql::dbuser")
 	dbname := BConfig.String("mysql::dbname")
 	dbpwd := BConfig.String("mysql::dbpwd")
-
 	if os.Getenv("DB_NAME") != "" {
 		dbname = os.Getenv("DB_NAME")
 	}
-
 	key := BConfig.String("key")
 	key1 := []byte(key)
 	bytes, _ := common.DePwdCode(dbpwd, key1)
