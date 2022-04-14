@@ -19,7 +19,7 @@ func (c *HealthzLiveController) RetSaData(resp map[string]interface{}) {
 func (u *HealthzLiveController) Get() {
 	resp := make(map[string]interface{})
 	resp["code"] = 200
-	resp["errmsg"] = "success"
+	resp["errmsg"] = "success1"
 	resp["body"] = "1"
 	defer u.RetSaData(resp)
 	return
@@ -40,8 +40,8 @@ func (c *HealthzReadController) RetSaData(resp map[string]interface{}) {
 func (u *HealthzReadController) Get() {
 	resp := make(map[string]interface{})
 	resp["code"] = 200
-	resp["errmsg"] = "success"
-	resp["body"] = ""
+	resp["errmsg"] = "success2"
+	resp["body"] = "2"
 	defer u.RetSaData(resp)
 	return
 }
