@@ -910,7 +910,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		logs.Error("resourceName, does not exist")
 	}
 	resType := ""
-	rtr := models.ResourceTempathRel{CourseId: courseId}
+	rtr := models.ResourceTempathRel{CourseId: crs.CourseId}
 	quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
 	if quryErr == nil {
 		resType = ResName(rtr.ResourcePath)
@@ -919,6 +919,9 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		}
 	}
 	logs.Info("resType: ", resType, ",resourceName: ",resourceName)
+	if courseId != crs.CourseId {
+		return false
+	}
 	if len(resType) > 0 && len(resourceName) > 0 {
 		if resType != resourceName {
 			return false
@@ -960,22 +963,20 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 			}
 		}
 	}
-	if courseId == crs.CourseId {
-		courseChan, ok := CoursePoolVar.Get(courseId)
-		if !ok {
-			courseData := make(chan InitTmplResource, crs.ResPoolSize)
-			courseData <- itr
-			CoursePoolVar.Set(courseId, courseData)
-			logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
-		} else {
-			if len(courseChan) >= crs.ResPoolSize {
-				logs.Error("delete data, itr:", itr)
-				return false
-			}
-			courseChan <- itr
-			CoursePoolVar.Set(courseId, courseChan)
-			logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
+	courseChan, ok := CoursePoolVar.Get(courseId)
+	if !ok {
+		courseData := make(chan InitTmplResource, crs.ResPoolSize)
+		courseData <- itr
+		CoursePoolVar.Set(courseId, courseData)
+		logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
+	} else {
+		if len(courseChan) >= crs.ResPoolSize {
+			logs.Error("delete data, itr:", itr)
+			return false
 		}
+		courseChan <- itr
+		CoursePoolVar.Set(courseId, courseChan)
+		logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
 	}
 	return true
 }
