@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/astaxie/beego v1.12.3
+	github.com/beego/bee v1.12.3 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/smartystreets/goconvey v1.6.6
@@ -52,17 +53,4 @@ require (
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
-)
-
-require (
-	github.com/andybalholm/brotli v1.0.2 // indirect
-	github.com/klauspost/compress v1.12.2 // indirect
-	github.com/lib/pq v1.7.0 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.26.0 // indirect
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
-	google.golang.org/appengine v1.6.6 // indirect
 )

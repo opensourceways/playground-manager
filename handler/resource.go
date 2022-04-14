@@ -6,22 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"playground_backend/common"
-	"playground_backend/models"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	ymV2 "gopkg.in/yaml.v2"
+	"html/template"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -33,10 +22,19 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"playground_backend/common"
+	"playground_backend/models"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 var downLock sync.Mutex
-
 //var resPoolLock sync.Mutex
 
 type ReqTmplParase struct {
@@ -113,6 +111,7 @@ type ResListStatus struct {
 type CourseRes struct {
 	CourseId    string
 	ResPoolSize int
+	ResType     string
 }
 
 func DeleteFile(filePath string) {
@@ -445,7 +444,6 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	fileName := path.Base(fPath)
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
-
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
 	gitUrl := fmt.Sprintf(downloadUrl+"?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
@@ -908,11 +906,29 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	if len(crs.CourseId) < 1 {
 		crs.CourseId = courseId
 	}
-	if crs.ResPoolSize < 1 {
-		rtr := models.ResourceTempathRel{CourseId: courseId}
-		quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
-		if quryErr == nil {
+	resourceName, ok := ParsingMapStr(annotations, "resourceName")
+	if !ok || len(resourceName) < 1 {
+		logs.Error("resourceName, does not exist")
+	}
+	resType := ""
+	rtr := models.ResourceTempathRel{CourseId: courseId}
+	quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
+	if quryErr == nil {
+		resTypeList := strings.Split(rtr.ResourcePath, "/")
+		if len(resTypeList) > 1 {
+			resTypestrList := strings.Split(resTypeList[1], "_")
+			if len(resTypestrList) > 0 {
+				resType = resTypestrList[0]
+			}
+		}
+		crs.ResType = resType
+		if crs.ResPoolSize < 1 {
 			crs.ResPoolSize = rtr.ResPoolSize
+		}
+	}
+	if len(resType) > 0 && len(resourceName) > 0 {
+		if !strings.Contains(resourceName, resType) {
+			return false
 		}
 	}
 	spec, ok := ParsingMap(items.Object, "spec")
