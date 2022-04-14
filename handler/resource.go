@@ -864,10 +864,7 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 			deleteFlag = true
 		}
 		if !deleteFlag && addFlag && !rls.ServerBoundFlag {
-			ok := AddTmplResourceList(items, crs)
-			if !ok {
-				deleteFlag = true
-			}
+			AddTmplResourceList(items, crs)
 		}
 		if deleteFlag {
 			delErr := dr.Delete(context.TODO(), name, metav1.DeleteOptions{})
@@ -918,7 +915,6 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 			crs.ResPoolSize = rtr.ResPoolSize
 		}
 	}
-	logs.Info("resType: ", resType, ",resourceName: ",resourceName)
 	if courseId != crs.CourseId {
 		return false
 	}
