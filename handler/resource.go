@@ -918,7 +918,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 			crs.ResPoolSize = rtr.ResPoolSize
 		}
 	}
-	logs.Error("===============,resType: ", resType, ",resourceName: ",resourceName)
+	logs.Info("resType: ", resType, ",resourceName: ",resourceName)
 	if len(resType) > 0 && len(resourceName) > 0 {
 		if resType != resourceName {
 			return false
