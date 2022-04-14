@@ -913,19 +913,13 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	rtr := models.ResourceTempathRel{CourseId: courseId}
 	quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
 	if quryErr == nil {
-		resTypeList := strings.Split(rtr.ResourcePath, "/")
-		if len(resTypeList) > 1 {
-			resTypestrList := strings.Split(resTypeList[1], "_")
-			if len(resTypestrList) > 0 {
-				resType = resTypestrList[0]
-			}
-		}
+		resType = ResName(rtr.ResourcePath)
 		if crs.ResPoolSize < 1 {
 			crs.ResPoolSize = rtr.ResPoolSize
 		}
 	}
 	if len(resType) > 0 && len(resourceName) > 0 {
-		if !strings.Contains(resourceName, resType) {
+		if resType != resourceName {
 			return false
 		}
 	}
