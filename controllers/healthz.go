@@ -45,3 +45,15 @@ func (u *HealthzReadController) Get() {
 	defer u.RetSaData(resp)
 	return
 }
+
+// @Get test
+// @Description get test
+// @router /test [get]
+func (u *HealthzLiveController) GetTest() {
+	resp := make(map[string]interface{})
+	resp["code"] = 200
+	resp["errmsg"] = "test"
+	resp["body"] = "2"
+	defer u.RetSaData(resp)
+	return
+}

@@ -1,8 +1,9 @@
 package routers
 
 import (
-	"github.com/astaxie/beego"
 	"playground_backend/controllers"
+
+	"github.com/astaxie/beego"
 )
 
 func init() {
@@ -21,4 +22,5 @@ func init() {
 	// Health check interface
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})
+	beego.Router("/healthz/test", &controllers.HealthzLiveController{}, "get:GetTest")
 }
