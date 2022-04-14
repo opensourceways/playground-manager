@@ -53,7 +53,7 @@ func (u *HealthzLiveController) GetTest() {
 	resp := make(map[string]interface{})
 	resp["code"] = 200
 	resp["errmsg"] = "test"
-	resp["body"] = "2"
+	resp["body"] = "3"
 	defer u.RetSaData(resp)
 	return
 }
