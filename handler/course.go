@@ -5,6 +5,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/pkg/errors"
+	"os"
 	"playground_backend/common"
 	"playground_backend/http"
 	"playground_backend/models"
@@ -433,6 +434,15 @@ func SyncCourse() error {
 	courseUrl := beego.AppConfig.String("courses::course_url")
 	chapterUrl := beego.AppConfig.String("courses::chapter_url")
 	chapterDetailUrl := beego.AppConfig.String("courses::chapter_detail_url")
+	if os.Getenv("COURSE_URL") != "" {
+		courseUrl = os.Getenv("COURSE_URL")
+	}
+	if os.Getenv("CHAPTER_URL") != "" {
+		chapterUrl = os.Getenv("CHAPTER_URL")
+	}
+	if os.Getenv("CHAPTER_DETAIL_URL") != "" {
+		chapterDetailUrl = os.Getenv("CHAPTER_DETAIL_URL")
+	}
 	body, resErr := http.HTTPGitGet(courseUrl)
 	if resErr != nil {
 		logs.Error("SyncCourse, resErr: ", resErr)

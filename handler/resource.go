@@ -111,7 +111,6 @@ type ResListStatus struct {
 type CourseRes struct {
 	CourseId    string
 	ResPoolSize int
-	ResType     string
 }
 
 func DeleteFile(filePath string) {
@@ -921,7 +920,6 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 				resType = resTypestrList[0]
 			}
 		}
-		crs.ResType = resType
 		if crs.ResPoolSize < 1 {
 			crs.ResPoolSize = rtr.ResPoolSize
 		}
