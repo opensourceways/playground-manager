@@ -9,7 +9,7 @@
 *.test
 conf/app.conf
 template/*
-
+statisticslog/
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 

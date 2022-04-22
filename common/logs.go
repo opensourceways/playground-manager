@@ -2,9 +2,11 @@ package common
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego/logs"
 	"fmt"
+
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
+	"github.com/astaxie/beego/logs"
 )
 
 func InitLogger() (err error) {
@@ -33,6 +35,11 @@ func InitLogger() (err error) {
 	if err != nil {
 		fmt.Println("marshal failed,err:", err)
 		return
+	}
+	if beego.BConfig.RunMode == beego.DEV {
+		logs.SetLevel(logs.LevelInfo)
+	} else {
+		logs.SetLevel(logs.LevelError)
 	}
 	logs.SetLogFuncCall(true)
 	return
