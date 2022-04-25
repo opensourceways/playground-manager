@@ -85,6 +85,7 @@ func (u *CrdResourceControllers) Post() {
 		gui := models.AuthUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
 		ok := handler.CheckToken(&gui)
 		if !ok {
+			logs.Error("CheckToken Error: ", gui)
 			resData.Mesg = "Authority authentication failed"
 			resData.Code = 403
 			u.RetData(resData)
@@ -110,7 +111,7 @@ func (u *CrdResourceControllers) Post() {
 	cs := models.Courses{CourseId: rp.CourseId}
 	queryErr := models.QueryCourse(&cs, "CourseId")
 	if queryErr != nil {
-		logs.Error("queryErr: ", queryErr)
+		logs.Error("QueryCourse Error: ", queryErr)
 		resData.Mesg = "Retry later while course info is syncing"
 		resData.Code = 404
 		u.RetData(resData)
@@ -125,7 +126,7 @@ func (u *CrdResourceControllers) Post() {
 	if rcpErr != nil {
 		resData.Code = 403
 		resData.Mesg = "The corresponding instance resource is not currently configured"
-		logs.Error("created crd parameters: ", rp)
+		logs.Error(rcp, "SaveCourseAndResRel crd parameters: ", rp)
 		u.RetData(resData)
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
