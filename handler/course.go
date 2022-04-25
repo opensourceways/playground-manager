@@ -2,15 +2,14 @@ package handler
 
 import (
 	"fmt"
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/pkg/errors"
 	"os"
 	"playground_backend/common"
 	"playground_backend/http"
 	"playground_backend/models"
 	"strings"
-
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -444,7 +443,6 @@ func SyncCourse() error {
 	if os.Getenv("CHAPTER_DETAIL_URL") != "" {
 		chapterDetailUrl = os.Getenv("CHAPTER_DETAIL_URL")
 	}
-
 	body, resErr := http.HTTPGitGet(courseUrl)
 	if resErr != nil {
 		logs.Error("SyncCourse, resErr: ", resErr)

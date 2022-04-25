@@ -3,12 +3,13 @@ package models
 import (
 	_ "database/sql"
 	"os"
-
 	_ "github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
+	"os"
+	"playground_backend/common"
 )
 
 //InitDb init database
@@ -24,14 +25,12 @@ func Initdb() bool {
 	dbuser := BConfig.String("mysql::dbuser")
 	dbname := BConfig.String("mysql::dbname")
 	dbpwd := BConfig.String("mysql::dbpwd")
-
 	if os.Getenv("DB_NAME") != "" {
 		dbname = os.Getenv("DB_NAME")
 	}
 	if os.Getenv("DB_PSWD") != "" {
 		dbpwd = os.Getenv("DB_PSWD")
 	}
-
 	maxidle, lerr := BConfig.Int("mysql::maxidle")
 	if lerr != nil {
 		maxidle = 30
