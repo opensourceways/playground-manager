@@ -3,13 +3,12 @@ package models
 import (
 	_ "database/sql"
 	"os"
+
 	_ "github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
-	"os"
-	"playground_backend/common"
 )
 
 //InitDb init database
