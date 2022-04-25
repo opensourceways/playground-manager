@@ -3,7 +3,6 @@ package models
 import (
 	_ "database/sql"
 	"os"
-	"playground_backend/common"
 
 	_ "github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
@@ -29,10 +28,10 @@ func Initdb() bool {
 	if os.Getenv("DB_NAME") != "" {
 		dbname = os.Getenv("DB_NAME")
 	}
+	if os.Getenv("DB_PSWD") != "" {
+		dbpwd = os.Getenv("DB_PSWD")
+	}
 
-	key := BConfig.String("key")
-	key1 := []byte(key)
-	bytes, _ := common.DePwdCode(dbpwd, key1)
 	maxidle, lerr := BConfig.Int("mysql::maxidle")
 	if lerr != nil {
 		maxidle = 30
@@ -42,7 +41,7 @@ func Initdb() bool {
 	if lerr != nil {
 		maxconn = 3000
 	}
-	dns := dbuser + ":" + string(bytes) + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?charset=utf8"
+	dns := dbuser + ":" + dbpwd + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?charset=utf8"
 	errx := orm.RegisterDriver("mysql", orm.DRMySQL)
 	if errx != nil {
 		logs.Error("RegisterDriver, orm err: ", errx)
