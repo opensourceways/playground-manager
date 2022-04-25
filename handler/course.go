@@ -2,14 +2,15 @@ package handler
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	"github.com/pkg/errors"
 	"os"
 	"playground_backend/common"
 	"playground_backend/http"
 	"playground_backend/models"
 	"strings"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -91,7 +92,7 @@ func addUserCourse(crp CourseReqParameter, uc *models.UserCourse, flag int) {
 func UserBoundBourse(crp CourseReqParameter) int64 {
 	crd := models.Courses{CourseId: crp.CourseId}
 	ccp := models.CoursesChapter{CourseId: crp.CourseId, ChapterId: ""}
-	WriteCourseData(crp.UserId, crp.CourseId, "", "User bound course",
+	WriteCourseData(crp.UserId, "0", crp.CourseId, "", "User bound course",
 		"", "Processing", "",
 		crp.Status, crp.Status, &crd, &ccp)
 	uc := models.UserCourse{UserId: crp.UserId, CourseId: crp.CourseId}
@@ -103,7 +104,7 @@ func UserBoundBourse(crp CourseReqParameter) int64 {
 		upErr := models.UpdateUserCourse(&uc, "CourseName", "CompletedFlag", "UpdateTime", "CId")
 		if upErr != nil {
 			logs.Error("UserBoundBourse, upErr: ", upErr)
-			WriteCourseData(crp.UserId, crp.CourseId, "", "User bound course",
+			WriteCourseData(crp.UserId, "0", crp.CourseId, "", "User bound course",
 				"", "failed", "User binding course failed",
 				crp.Status, crp.Status, &crd, &ccp)
 			return 0
@@ -115,7 +116,7 @@ func UserBoundBourse(crp CourseReqParameter) int64 {
 		id, inErr := models.InsertUserCourse(&uc)
 		if inErr != nil {
 			logs.Error("UserBoundBourse, inErr: ", inErr, ",id:", id)
-			WriteCourseData(crp.UserId, crp.CourseId, "", "User bound course",
+			WriteCourseData(crp.UserId, "0", crp.CourseId, "", "User bound course",
 				"", "failed", "User binding course failed",
 				crp.Status, crp.Status, &crd, &ccp)
 			return 0
@@ -124,7 +125,7 @@ func UserBoundBourse(crp CourseReqParameter) int64 {
 	}
 	// Determining whether a course has been completed
 	IsCompleteCourse(crp.CourseId, crp.UserId)
-	WriteCourseData(crp.UserId, crp.CourseId, "", "User bound course",
+	WriteCourseData(crp.UserId, "0", crp.CourseId, "", "User bound course",
 		"", "success", "User binding course successfully",
 		crp.Status, crp.Status, &crd, &ccp)
 	return ucId
@@ -166,7 +167,7 @@ func addUserCourseChapter(crp ChapterReqParameter, uc *models.UserCourseChapter,
 func UserBoundBourseChapter(crp ChapterReqParameter, ucId, userId int64, courseId string, courseStatus int) {
 	crd := models.Courses{CourseId: courseId}
 	ccp := models.CoursesChapter{CourseId: courseId, ChapterId: crp.ChapterId}
-	WriteCourseData(userId, courseId, crp.ChapterId, "User bound chapter",
+	WriteCourseData(userId, "0", courseId, crp.ChapterId, "User bound chapter",
 		"", "Processing", "",
 		courseStatus, crp.Status, &crd, &ccp)
 	uc := models.UserCourseChapter{UserId: userId, CourseId: courseId, ChapterId: crp.ChapterId}
@@ -180,7 +181,7 @@ func UserBoundBourseChapter(crp ChapterReqParameter, ucId, userId int64, courseI
 			"CompletedFlag", "UpdateTime", "CId", "TId", "CourseName")
 		if upErr != nil {
 			logs.Error("UserBoundBourseChapter, upErr: ", upErr)
-			WriteCourseData(userId, courseId, crp.ChapterId, "User bound chapter",
+			WriteCourseData(userId, "0", courseId, crp.ChapterId, "User bound chapter",
 				"", "failed", "User binding course chapter failed",
 				courseStatus, crp.Status, &crd, &ccp)
 			return
@@ -193,13 +194,13 @@ func UserBoundBourseChapter(crp ChapterReqParameter, ucId, userId int64, courseI
 		id, inErr := models.InsertUserCourseChapter(&uc)
 		if inErr != nil {
 			logs.Error("UserBoundBourseChapter, inErr: ", inErr, ",id:", id)
-			WriteCourseData(userId, courseId, crp.ChapterId, "User bound chapter",
+			WriteCourseData(userId, "0", courseId, crp.ChapterId, "User bound chapter",
 				"", "failed", "User binding course chapter failed",
 				courseStatus, crp.Status, &crd, &ccp)
 			return
 		}
 	}
-	WriteCourseData(userId, courseId, crp.ChapterId, "User bound chapter",
+	WriteCourseData(userId, "0", courseId, crp.ChapterId, "User bound chapter",
 		"", "success", "User binding course chapter successfully",
 		courseStatus, crp.Status, &crd, &ccp)
 }
@@ -513,7 +514,7 @@ func GetUserCourse(userId int64, currentPage, pageSize int) (rcdList []RspCourse
 			IsCompleteCourse(uc.CourseId, userId)
 			crd := models.Courses{CourseId: uc.CourseId}
 			ccp := models.CoursesChapter{CourseId: uc.CourseId}
-			WriteCourseData(userId, uc.CourseId, "", "Query user's courses",
+			WriteCourseData(userId, "0", uc.CourseId, "", "Query user's courses",
 				"", "success", "Query the user has taken courses successfully",
 				uc.CompletedFlag, uc.CompletedFlag, &crd, &ccp)
 			rcd := RspCourseData{}
@@ -527,7 +528,7 @@ func GetUserCourse(userId int64, currentPage, pageSize int) (rcdList []RspCourse
 				if len(ucpList) > 0 {
 					for _, ucp := range ucpList {
 						ccp.ChapterId = ucp.ChapterId
-						WriteCourseData(userId, uc.CourseId, ucp.ChapterId, "Query user's courses chapters",
+						WriteCourseData(userId, "0", uc.CourseId, ucp.ChapterId, "Query user's courses chapters",
 							"", "success", "Query the user's learned course chapters successfully",
 							uc.CompletedFlag, ucp.CompletedFlag, &crd, &ccp)
 						ccp := models.CoursesChapter{CourseId: ucp.CourseId, ChapterId: ucp.ChapterId}

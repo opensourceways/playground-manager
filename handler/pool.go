@@ -4,16 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	ymV2 "gopkg.in/yaml.v2"
 	"html/template"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/dynamic"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +15,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	ymV2 "gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/client-go/dynamic"
 )
 
 type ResourceData struct {
@@ -222,6 +223,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	} else {
 		logs.Info("Resource is being created, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	}
+
 	return nil
 }
 

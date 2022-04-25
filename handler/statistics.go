@@ -18,8 +18,6 @@ import (
 
 type StatisticsData struct {
 	UserId        int64
-	UserName      string
-	UserEmail     string
 	OperationTime string
 	EventType     string
 	Course        CourseData
@@ -29,6 +27,7 @@ type StatisticsData struct {
 }
 
 type CourseData struct {
+	ResourceId    string
 	CourseId      string
 	CourseName    string
 	chapterId     string
@@ -144,14 +143,7 @@ func DataFormatConver(sd StatisticsData) []byte {
 
 func StatisticsLog(sd StatisticsData) error {
 	// 0. Query login information
-	if sd.UserId > 0 && (len(sd.UserName) < 1 || len(sd.UserEmail) < 1) {
-		gui := models.AuthUserInfo{UserId: sd.UserId}
-		queryErr := models.QueryAuthUserInfo(&gui, "UserId")
-		if queryErr == nil {
-			sd.UserName = gui.Name
-			sd.UserEmail = gui.Email
-		}
-	}
+
 	// 1. Create a log file
 	filePath, fErr := CreateStatistLog("")
 	if fErr != nil {
@@ -175,13 +167,14 @@ func StatisticsLog(sd StatisticsData) error {
 	return nil
 }
 
-func WriteCourseData(userId int64, courseId, ChapterId, eventType, resName,
+func WriteCourseData(userId int64, userResId string, courseId, ChapterId, eventType, resName,
 	states, stateMes string, courseStatus, status int,
 	crd *models.Courses, ccp *models.CoursesChapter) {
-	sd := StatisticsData{UserId: userId, UserName: "",
+	sd := StatisticsData{UserId: userId,
 		OperationTime: common.GetCurTime(), EventType: eventType,
 		State: states, StateMessage: stateMes}
 	cd := CourseData{}
+	cd.ResourceId = userResId
 	cd.CourseId = courseId
 	models.QueryCourse(crd, "CourseId")
 	if crd.Id > 0 {

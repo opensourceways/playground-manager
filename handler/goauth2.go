@@ -4,6 +4,10 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"playground_backend/common"
+	"playground_backend/models"
+	"time"
+
 	"github.com/Authing/authing-go-sdk/lib/authentication"
 	"github.com/Authing/authing-go-sdk/lib/constant"
 	"github.com/Authing/authing-go-sdk/lib/management"
@@ -12,9 +16,6 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/bitly/go-simplejson"
 	"github.com/pkg/errors"
-	"playground_backend/common"
-	"playground_backend/models"
-	"time"
 )
 
 const (
@@ -1073,7 +1074,7 @@ func GetUserInfoByReshToken(userId int64, token string, rui *RespUserInfo) {
 			if jsonErr == nil {
 				userStr = string(userJson)
 			}
-			sd := StatisticsData{UserId: rui.UserId, UserName: rui.NickName,
+			sd := StatisticsData{UserId: rui.UserId,
 				OperationTime: common.GetCurTime(), EventType: "Query login information", State: "success",
 				StateMessage: "success", Body: userStr}
 			sdErr := StatisticsLog(sd)
@@ -1099,7 +1100,7 @@ func GetUserInfoByUserId(aui *models.AuthUserInfo, rui *RespUserInfo) {
 		if jsonErr == nil {
 			userStr = string(userJson)
 		}
-		sd := StatisticsData{UserId: rui.UserId, UserName: rui.NickName,
+		sd := StatisticsData{UserId: rui.UserId,
 			OperationTime: common.GetCurTime(), EventType: "Query login information", State: "success",
 			StateMessage: "success", Body: userStr}
 		sdErr := StatisticsLog(sd)

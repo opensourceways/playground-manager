@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"playground_backend/handler"
 	"playground_backend/models"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type CrdResourceControllers struct {
@@ -64,7 +65,7 @@ func (u *CrdResourceControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+		handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId, "Application Resources",
 			"", "failed", "Please check whether the request parameters are correct",
 			1, 1, &crd, &ccp)
 		return
@@ -75,7 +76,7 @@ func (u *CrdResourceControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+		handler.WriteCourseData(rp.UserId, "0", rp.CourseId, rp.ChapterId,
 			"Application Resources", "", "failed",
 			"Unauthorized authentication information",
 			1, 1, &crd, &ccp)
@@ -89,7 +90,7 @@ func (u *CrdResourceControllers) Post() {
 			u.RetData(resData)
 			crd := models.Courses{CourseId: rp.CourseId}
 			ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-			handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+			handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId, "Application Resources",
 				"", "filed", "Authority authentication failed",
 				1, 1, &crd, &ccp)
 			return
@@ -115,7 +116,7 @@ func (u *CrdResourceControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+		handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId, "Application Resources",
 			"", "filed", "Retry later while course info is syncing",
 			1, 1, &crd, &ccp)
 		return
@@ -128,7 +129,7 @@ func (u *CrdResourceControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+		handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId,
 			"Application Resources", "", "failed",
 			"The corresponding instance resource is not currently configured",
 			1, 1, &crd, &ccp)
@@ -148,10 +149,10 @@ func (u *CrdResourceControllers) Post() {
 		}
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+		userResId := handler.CreateUserResourceEnv(rr)
+		handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
 			"success", "User learning courses apply for instance resources successfully",
 			1, 1, &crd, &ccp)
-		userResId := handler.CreateUserResourceEnv(rr)
 		rri.UserResId = userResId
 		resData.ResInfo = *rri
 		resData.Mesg = "success"
@@ -161,7 +162,7 @@ func (u *CrdResourceControllers) Post() {
 		resData.Mesg = "Failed to create resource, need to request resource again"
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+		handler.WriteCourseData(rp.UserId, rp.ResourceId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
 			"failed", "Failed to create resource, need to request resource again",
 			1, 1, &crd, &ccp)
 	}
@@ -217,7 +218,7 @@ func (u *CrdResourceControllers) Get() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: ure.CourseId}
 		ccp := models.CoursesChapter{CourseId: ure.CourseId, ChapterId: ure.ChapterId}
-		handler.WriteCourseData(ure.UserId, ure.CourseId, ure.ChapterId, "Query application resources", rri.ResName,
+		handler.WriteCourseData(ure.UserId, ure.ResourceId, ure.CourseId, ure.ChapterId, "Query application resources", rri.ResName,
 			"success", "Query application resource success",
 			1, 1, &crd, &ccp)
 	}
