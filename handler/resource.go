@@ -1021,6 +1021,7 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
+
 	}
 	rls = GetResInfo(objGetData, dr, config, obj, true)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {

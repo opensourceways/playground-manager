@@ -3,14 +3,15 @@ package common
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"math/rand"
 	"os"
 	"time"
 	"unicode"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"k8s.io/client-go/rest"
 )
 
 var GlobK8sConfig *rest.Config
@@ -33,7 +34,7 @@ func GetCurDate() string {
 }
 
 func GetCurTime() string {
-	return time.Now().Format(DATE_FORMAT)
+	return time.Now().Format(DATE_T_Z_FORMAT)
 }
 
 func CreateDir(dir string) error {
@@ -46,7 +47,7 @@ func CreateDir(dir string) error {
 	return err
 }
 
-func FileExists(path string) (bool) {
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
