@@ -1,6 +1,10 @@
 package models
 
 import (
+	"encoding/base64"
+	"fmt"
+	"playground_backend/common"
+
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 )
@@ -84,4 +88,20 @@ func QueryResourceTempathRelAll() (ite []ResourceTempathRel, num int64, err erro
 		logs.Error("QueryResourceTempathRelAll, err: ", err)
 	}
 	return
+}
+func MakeResourceContent() {
+	resourceData := `some data .....	`
+
+	temp := common.AesString([]byte(resourceData))
+	temp = base64.StdEncoding.EncodeToString([]byte(temp))
+	data, baseErr := base64.StdEncoding.DecodeString(string(temp))
+	if baseErr == nil {
+		strContent := common.DesString(string(data))
+		if resourceData == string(strContent) {
+			fmt.Println("===result============:", string(temp))
+		} else {
+			fmt.Println("===failed============")
+		}
+	}
+
 }

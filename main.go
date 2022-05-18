@@ -17,6 +17,7 @@ func init() {
 }
 
 func main() {
+
 	// init db
 	dbOk := models.Initdb()
 	if !dbOk {

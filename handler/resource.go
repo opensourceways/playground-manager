@@ -510,6 +510,7 @@ func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) 
 		logs.Error("dynamic.NewForConfig, err: ", err)
 		return
 	}
+
 	if resourceMapper.Scope.Name() == meta.RESTScopeNameNamespace {
 		dr = dynamicClient.Resource(resourceMapper.Resource).Namespace(nameSpace)
 	} else {
@@ -1143,6 +1144,7 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					continue
 				} else {
+
 					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
 					if err != nil {
 						logs.Error("UpdateRes err: ", err)
