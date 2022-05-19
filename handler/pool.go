@@ -304,6 +304,7 @@ func CreatePoolResource(rd *ResourceData) {
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
 		logs.Error("createErr: ", createErr)
+		time.Sleep(time.Minute)
 		return
 	}
 }
@@ -346,6 +347,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
 				if len(coursePool) < rt.ResPoolSize {
 					CreatePoolResource(&rd)
+
 				} else {
 					break
 				}
