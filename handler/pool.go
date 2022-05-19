@@ -190,6 +190,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
+		logs.Error("---------yamlData:----", string(yamlData))
 		logs.Error("failed to get GVK, err: ", err)
 		return err
 	}
