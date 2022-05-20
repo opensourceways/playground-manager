@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -304,8 +305,8 @@ func CreatePoolResource(rd *ResourceData) {
 	content := PoolParseTmpl(yamlDir, rd, localPath)
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
-		logs.Error("createErr: ", createErr)
-		time.Sleep(time.Minute * 10)
+		logs.Error("createErr: -----------------", createErr)
+		time.Sleep(time.Minute * 2)
 		return
 	}
 }
@@ -336,6 +337,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
+		fmt.Println(coursePool, ok, "================ CoursePoolVar.Get=====================")
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
@@ -375,8 +377,10 @@ func InitialResourcePool() {
 		return
 	}
 	// 3. Query for available resources
+	fmt.Println("----------------InitalResPool------")
 	InitalResPool(rtr)
 	// 4. Print resource pool data
+	fmt.Println("----------------PrintResPool------")
 	PrintResPool()
 }
 
