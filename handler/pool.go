@@ -353,6 +353,8 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 				if len(coursePool) < rt.ResPoolSize {
 					CreatePoolResource(&rd)
 				} else {
+					fmt.Println(len(coursePool), "=========3======= break=====================", rt.ResPoolSize)
+
 					break
 				}
 			}
