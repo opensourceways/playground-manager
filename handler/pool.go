@@ -338,7 +338,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
-		fmt.Println(coursePool, ok, "================ CoursePoolVar.Get=====================")
+		fmt.Println(cap(coursePool), ok, "===========1===== CoursePoolVar.Get=====================")
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
@@ -349,6 +349,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		} else {
 			for {
 				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
+				fmt.Println(len(coursePool), "=========2======= CoursePoolVar.Get=====================", rt.ResPoolSize)
 				if len(coursePool) < rt.ResPoolSize {
 					CreatePoolResource(&rd)
 				} else {
