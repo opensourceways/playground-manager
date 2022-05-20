@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 	"unicode"
 
@@ -110,15 +111,27 @@ func TimeStrToInt(ts, layout string) int64 {
 
 // Time string to timestamp
 func PraseTimeInt(stringTime string) int64 {
+	if strings.Contains(stringTime, "T") {
+		return TimeStrToInt(stringTime, DATE_T_FORMAT)
+	}
 	return TimeStrToInt(stringTime, DATE_FORMAT)
 }
 
 func PraseTimeTint(tsStr string) int64 {
-	return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	if strings.Contains(tsStr, "T") {
+		return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	}
+	return TimeStrToInt(tsStr, DATE_FORMAT)
 }
 
-func LocalTimeToUTC(strTime string) time.Time {
-	local, _ := time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+func LocalTimeToUTC(strTime string) (local time.Time) {
+	if strings.Contains(strTime, "T") {
+		local, _ = time.ParseInLocation(DATE_T_FORMAT, strTime, time.Local)
+	} else {
+		local, _ = time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+
+	}
+
 	return local
 }
 
