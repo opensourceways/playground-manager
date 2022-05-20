@@ -303,6 +303,7 @@ func CreatePoolResource(rd *ResourceData) {
 		return
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)
+	fmt.Println("--------------------------------CreatePoolResource:content:", string(content))
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
 		logs.Error("createErr: -----------------", createErr)
