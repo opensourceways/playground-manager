@@ -129,9 +129,7 @@ func LocalTimeToUTC(strTime string) (local time.Time) {
 		local, _ = time.ParseInLocation(DATE_T_FORMAT, strTime, time.Local)
 	} else {
 		local, _ = time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
-
 	}
-
 	return local
 }
 
