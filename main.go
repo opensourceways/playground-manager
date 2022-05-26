@@ -17,7 +17,7 @@ func init() {
 }
 
 func main() {
-	// models.MakeResourceContent()
+	//   models.MakeResourceContent()
 	// return
 	// init db
 	dbOk := models.Initdb()

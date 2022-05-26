@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 type CrdResourceControllers struct {
@@ -223,5 +225,41 @@ func (u *CrdResourceControllers) Get() {
 			"success", "Query application resource success",
 			1, 1, &crd, &ccp)
 	}
+	return
+}
+
+// @Title Get CheckPgweb
+// @Description get CheckPgweb
+// @Param	status	int	true (0,1,2)
+// @Success 200 {object} CheckPgweb
+// @Failure 403 :status is err
+// @router /playground/users/checkpgweb [get]
+func (u *CrdResourceControllers) CheckPgweb() {
+
+	tokenString := u.GetString("token")
+	if len(tokenString) == 0 {
+		tokenString = u.Ctx.Request.Header.Get("token")
+	}
+	subdomain := u.GetString("subdomain")
+
+	eoi := models.ResourceInfo{Subdomain: subdomain}
+	err := models.QueryResourceInfo(&eoi, "Subdomain")
+	if err != nil {
+
+	}
+
+	var claims jwt.Claims
+	tokenClaims, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return common.JwtSecret, nil
+	})
+
+	if tokenClaims != nil {
+		if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
+			if claims.Userid == "115" {
+
+			}
+		}
+	}
+
 	return
 }

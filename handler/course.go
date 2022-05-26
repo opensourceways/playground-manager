@@ -340,14 +340,6 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 		saveErr := SaveResourceTemplate(rr)
 		return saveErr
 	}
-	rcp.ResourcePath = customTemplatePath
-	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
-	if rcp.Id > 0 {
-		rr.EnvResource = rcp.ResourcePath
-		rr.ResourceId = rcp.ResourceId
-		saveErr := SaveResourceTemplate(rr)
-		return saveErr
-	}
 	rcp.ResourcePath = defTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
@@ -356,7 +348,16 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 		saveErr := SaveResourceTemplate(rr)
 		return saveErr
 	}
+
 	rcp.ResourcePath = defContainerTemplatePath
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	if rcp.Id > 0 {
+		rr.EnvResource = rcp.ResourcePath
+		rr.ResourceId = rcp.ResourceId
+		saveErr := SaveResourceTemplate(rr)
+		return saveErr
+	}
+	rcp.ResourcePath = customTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath

@@ -19,6 +19,8 @@ func init() {
 	beego.Router("/playground/crd/resource", &controllers.CrdResourceControllers{})
 	// Bind the course/chapter selected by the user
 	beego.Router("/playground/users/course/chapter", &controllers.CourseChapterControllers{})
+	//
+	beego.Router("/playground/users/checkpgweb", &controllers.CrdResourceControllers{}, "get:CheckPgweb")
 	// Health check interface
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})

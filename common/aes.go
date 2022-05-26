@@ -9,10 +9,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/astaxie/beego/logs"
-	jwt "github.com/dgrijalva/jwt-go"
 	"math/rand"
 	"time"
+
+	"github.com/astaxie/beego/logs"
+	jwt "github.com/dgrijalva/jwt-go"
+)
+
+var (
+	JwtSecret string = "justtemp"
 )
 
 //PKCS7Padding PKCS7 padding mode
@@ -138,16 +143,16 @@ func GenPrivKey(lens int) string {
 }
 
 type Claims struct {
-	username string
-	password string
+	Username string
+	Userid   string
 	jwt.StandardClaims
 }
 
-func setting(jwtkey []byte, username, password string) (string, error) {
+func setting(jwtkey []byte, username, userid string) (string, error) {
 	expireTime := time.Now().Add(7 * 24 * time.Hour)
 	claims := &Claims{
-		username: username,
-		password: password,
+		Username: username,
+		Userid:   userid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(), //expire date
 			IssuedAt:  time.Now().Unix(),
@@ -166,7 +171,8 @@ func setting(jwtkey []byte, username, password string) (string, error) {
 
 //GenToken Generate Token
 func GenToken(username, password string) (string, error) {
-	pKey := GenPrivKey(16)
+	// pKey := GenPrivKey(16)
+	pKey := JwtSecret
 	var jwtkey = []byte(pKey)
 	tokens, err := setting(jwtkey, username, password)
 	return tokens, err
