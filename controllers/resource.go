@@ -234,8 +234,8 @@ func (u *CrdResourceControllers) Get() {
 // @Param	status	int	true (0,1,2)
 // @Success 200 {object} CheckPgweb
 // @Failure 403 :status is err
-// @router /playground/users/checkpgweb [get]
-func (u *CrdResourceControllers) CheckPgweb() {
+// @router /playground/users/checkSubdomain [get]
+func (u *CrdResourceControllers) CheckSubdomain() {
 
 	tokenString := u.GetString("token")
 	if len(tokenString) == 0 {
@@ -256,24 +256,13 @@ func (u *CrdResourceControllers) CheckPgweb() {
 	err := models.QueryResourceInfo(&eoi, "Subdomain")
 	if err != nil {
 		u.Data["json"] = map[string]interface{}{
-			"a":     "b",
-			"error": err,
+			"detail":    "没有查到这个Subdomain ",
+			"Subdomain": subdomain,
+			"error":     err,
 		}
 		u.ServeJSON()
 		return
 	}
-	// inclaims := &common.Claims{
-	// 	Userid: "3",
-	// 	StandardClaims: jwt.StandardClaims{
-	// 		ExpiresAt: time.Now().Unix(), //expire date
-	// 		IssuedAt:  time.Now().Unix(),
-	// 		Issuer:    "127.0.0.1",  // Signature issuer
-	// 		Subject:   "user token", //Signature subject
-	// 	},
-	// }
-	// inToken := jwt.New(jwt.SigningMethodHS256)
-	// inToken.Claims = inclaims
-	// tokenString, err = inToken.SignedString([]byte(common.JwtSecret))
 
 	var claims common.Claims
 	tokenClaims, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
