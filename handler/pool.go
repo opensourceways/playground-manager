@@ -385,7 +385,7 @@ func InitialResourcePool() {
 	fmt.Println("----------------InitalResPool------")
 	InitalResPool(rtr)
 	// 4. Print resource pool data
-	fmt.Println("----------------PrintResPool------")
+	fmt.Println("---1-------------PrintResPool------")
 	PrintResPool()
 }
 
