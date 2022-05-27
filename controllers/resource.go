@@ -5,6 +5,7 @@ import (
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
@@ -240,26 +241,56 @@ func (u *CrdResourceControllers) CheckPgweb() {
 	if len(tokenString) == 0 {
 		tokenString = u.Ctx.Request.Header.Get("token")
 	}
+
 	subdomain := u.GetString("subdomain")
+	if len(tokenString) == 0 || len(subdomain) == 0 {
+		u.Data["json"] = map[string]interface{}{
+			"token":     tokenString,
+			"subdomain": subdomain,
+		}
+		u.ServeJSON()
+		return
+	}
 
 	eoi := models.ResourceInfo{Subdomain: subdomain}
 	err := models.QueryResourceInfo(&eoi, "Subdomain")
 	if err != nil {
-
+		u.Data["json"] = map[string]interface{}{
+			"a":     "b",
+			"error": err,
+		}
+		u.ServeJSON()
+		return
 	}
+	// inclaims := &common.Claims{
+	// 	Userid: "3",
+	// 	StandardClaims: jwt.StandardClaims{
+	// 		ExpiresAt: time.Now().Unix(), //expire date
+	// 		IssuedAt:  time.Now().Unix(),
+	// 		Issuer:    "127.0.0.1",  // Signature issuer
+	// 		Subject:   "user token", //Signature subject
+	// 	},
+	// }
+	// inToken := jwt.New(jwt.SigningMethodHS256)
+	// inToken.Claims = inclaims
+	// tokenString, err = inToken.SignedString([]byte(common.JwtSecret))
 
-	var claims jwt.Claims
-	tokenClaims, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return common.JwtSecret, nil
+	var claims common.Claims
+	tokenClaims, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(common.JwtSecret), nil
 	})
 
 	if tokenClaims != nil {
 		if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
-			if claims.Userid == "115" {
-
+			userid, _ := strconv.Atoi(claims.Userid)
+			if int64(userid) == eoi.UserId {
+				u.Data["json"] = "ok"
+				u.ServeJSON()
+				return
 			}
 		}
 	}
-
+	u.Data["json"] = eoi
+	u.ServeJSON()
 	return
 }

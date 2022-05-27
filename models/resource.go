@@ -11,6 +11,7 @@ import (
 
 func QueryResourceInfo(eoi *ResourceInfo, field ...string) error {
 	o := orm.NewOrm()
+
 	err := o.Read(eoi, field...)
 	return err
 }

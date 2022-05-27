@@ -50,6 +50,7 @@ func Initdb() bool {
 		logs.Error("RegisterDataBase failed", "errorm: ", errorm)
 		return false
 	}
+	orm.Debug = true
 	logs.Info("Initdb, mysql connection is successful")
 	res := CreateDb()
 	if res {

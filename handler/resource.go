@@ -173,7 +173,7 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 		fmt.Println("----------------解密后:", string(strContent))
 		f.Write(strContent)
 	} else {
-		logs.Error(baseErr)
+		logs.Error("+++++++++++++++++", baseErr)
 		return resConfig, baseErr
 	}
 	resConfig, err = clientcmd.BuildConfigFromFlags("", filePath)
