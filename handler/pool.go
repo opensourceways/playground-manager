@@ -300,6 +300,7 @@ func CreatePoolResource(rd *ResourceData) {
 	downLock.Unlock()
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rd.EnvResource)
+		time.Sleep(time.Second * 1)
 		return
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)

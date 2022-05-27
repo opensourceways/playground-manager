@@ -50,5 +50,5 @@ func LogInit() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("log init success !")
+	fmt.Println("log init success ! ... ")
 }
