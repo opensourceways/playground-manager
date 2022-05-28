@@ -229,35 +229,44 @@ func (u *CrdResourceControllers) Get() {
 	return
 }
 
-// @Title Get CheckPgweb
-// @Description get CheckPgweb
+type CheckSubdomain struct {
+	Token     string `json:"token"`
+	Subdomain string `json:"subdomain"`
+}
+
+// @Title Get CheckSubdomain
+// @Description 验证subdomain 和token
 // @Param	status	int	true (0,1,2)
 // @Success 200 {object} CheckPgweb
 // @Failure 403 :status is err
-// @router /playground/users/checkSubdomain [get]
+// @router /playground/users/checkSubdomain [post]
 func (u *CrdResourceControllers) CheckSubdomain() {
 
-	tokenString := u.GetString("token")
-	if len(tokenString) == 0 {
-		tokenString = u.Ctx.Request.Header.Get("token")
-	}
-
-	subdomain := u.GetString("subdomain")
-	if len(tokenString) == 0 || len(subdomain) == 0 {
+	var checkSubdomain CheckSubdomain
+	err := json.Unmarshal(u.Ctx.Input.RequestBody, &checkSubdomain)
+	if err != nil {
 		u.Data["json"] = map[string]interface{}{
-			"token":     tokenString,
-			"subdomain": subdomain,
+			"detail": "body参数异常 ",
+			"error":  err,
 		}
 		u.ServeJSON()
 		return
 	}
+	if len(checkSubdomain.Subdomain) == 0 || len(checkSubdomain.Token) == 0 {
+		u.Data["json"] = map[string]interface{}{
+			"checkSubdomain": checkSubdomain,
+			"error":          "body参数异常",
+		}
+		u.ServeJSON()
+		return
 
-	eoi := models.ResourceInfo{Subdomain: subdomain}
-	err := models.QueryResourceInfo(&eoi, "Subdomain")
+	}
+	eoi := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
+	err = models.QueryResourceInfo(&eoi, "Subdomain")
 	if err != nil {
 		u.Data["json"] = map[string]interface{}{
 			"detail":    "没有查到这个Subdomain ",
-			"Subdomain": subdomain,
+			"Subdomain": checkSubdomain.Subdomain,
 			"error":     err,
 		}
 		u.ServeJSON()
@@ -265,7 +274,7 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 	}
 
 	var claims common.Claims
-	tokenClaims, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+	tokenClaims, err := jwt.ParseWithClaims(checkSubdomain.Token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(common.JwtSecret), nil
 	})
 

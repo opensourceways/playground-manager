@@ -20,7 +20,7 @@ func init() {
 	// Bind the course/chapter selected by the user
 	beego.Router("/playground/users/course/chapter", &controllers.CourseChapterControllers{})
 	//
-	beego.Router("/playground/users/checkSubdomain", &controllers.CrdResourceControllers{}, "get:CheckSubdomain")
+	beego.Router("/playground/users/checkSubdomain", &controllers.CrdResourceControllers{}, "post:CheckSubdomain")
 	// Health check interface
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})

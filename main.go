@@ -17,6 +17,9 @@ func init() {
 }
 
 func main() {
+
+	// token, _ := common.GenToken("22", "abc")
+	// fmt.Println("-------------:", token)
 	//   models.MakeResourceContent()
 	// return
 	// init db
