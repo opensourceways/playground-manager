@@ -3,7 +3,6 @@ package models
 import (
 	_ "database/sql"
 	"os"
-	"playground_backend/common"
 
 	_ "github.com/astaxie/beego"
 	"github.com/astaxie/beego/config"
@@ -25,14 +24,12 @@ func Initdb() bool {
 	dbuser := BConfig.String("mysql::dbuser")
 	dbname := BConfig.String("mysql::dbname")
 	dbpwd := BConfig.String("mysql::dbpwd")
-
 	if os.Getenv("DB_NAME") != "" {
 		dbname = os.Getenv("DB_NAME")
 	}
-
-	key := BConfig.String("key")
-	key1 := []byte(key)
-	bytes, _ := common.DePwdCode(dbpwd, key1)
+	if os.Getenv("DB_PSWD") != "" {
+		dbpwd = os.Getenv("DB_PSWD")
+	}
 	maxidle, lerr := BConfig.Int("mysql::maxidle")
 	if lerr != nil {
 		maxidle = 30
@@ -42,7 +39,7 @@ func Initdb() bool {
 	if lerr != nil {
 		maxconn = 3000
 	}
-	dns := dbuser + ":" + string(bytes) + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?charset=utf8"
+	dns := dbuser + ":" + dbpwd + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?charset=utf8"
 	errx := orm.RegisterDriver("mysql", orm.DRMySQL)
 	if errx != nil {
 		logs.Error("RegisterDriver, orm err: ", errx)
@@ -53,6 +50,7 @@ func Initdb() bool {
 		logs.Error("RegisterDataBase failed", "errorm: ", errorm)
 		return false
 	}
+	// orm.Debug = true
 	logs.Info("Initdb, mysql connection is successful")
 	res := CreateDb()
 	if res {

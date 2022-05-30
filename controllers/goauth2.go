@@ -7,11 +7,12 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type Oauth2CallBackLinksControllers struct {
@@ -131,7 +132,7 @@ func (u *Oauth2CallBackControllers) Get() {
 	if jsonErr == nil {
 		userStr = string(userJson)
 	}
-	sd := handler.StatisticsData{UserId: rui.UserId, UserName: rui.NickName,
+	sd := handler.StatisticsData{UserId: rui.UserId,
 		OperationTime: common.GetCurTime(), EventType: "Authorization callback", State: "success",
 		StateMessage: "success", Body: userStr}
 	sdErr := handler.StatisticsLog(sd)
@@ -208,7 +209,7 @@ func (u *Oauth2AuthenticationControllers) Post() {
 	if jsonErr == nil {
 		userStr = string(userJson)
 	}
-	sd := handler.StatisticsData{UserId: rui.UserId, UserName: rui.NickName,
+	sd := handler.StatisticsData{UserId: rui.UserId,
 		OperationTime: common.GetCurTime(), EventType: "login", State: "success",
 		StateMessage: "success", Body: userStr}
 	sdErr := handler.StatisticsLog(sd)

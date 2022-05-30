@@ -3,8 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,12 +11,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type StatisticsData struct {
 	UserId        int64
-	UserName      string
-	UserEmail     string
 	OperationTime string
 	EventType     string
 	Course        CourseData
@@ -28,6 +27,7 @@ type StatisticsData struct {
 }
 
 type CourseData struct {
+	ResourceId    string
 	CourseId      string
 	CourseName    string
 	chapterId     string
@@ -127,24 +127,12 @@ func WriteStatistLog(filePath string, byteData []byte) error {
 
 func DataFormatConver(sd StatisticsData) []byte {
 	mapData := make(map[string]interface{})
-	mapData["time"] = fmt.Sprintf("[%v/%v]", common.GetCurTime(), sd.UserEmail)
-	mapData["operationTime"] = fmt.Sprintf("%v", sd.OperationTime)
-	mapData["userId"] = fmt.Sprintf("%v", sd.UserId)
-	mapData["userName"] = fmt.Sprintf("%v", sd.UserName)
-	mapData["userEmail"] = fmt.Sprintf("%v", sd.UserEmail)
-	mapData["eventType"] = fmt.Sprintf("%v", sd.EventType)
-	mapData["courseId"] = fmt.Sprintf("%v", sd.Course.CourseId)
-	mapData["courseName"] = fmt.Sprintf("%v", sd.Course.CourseName)
-	mapData["chapterId"] = fmt.Sprintf("%v", sd.Course.chapterId)
-	mapData["chapterName"] = fmt.Sprintf("%v", sd.Course.ChapterName)
-	mapData["courseDur"] = fmt.Sprintf("%v", sd.Course.CourseDur)
-	mapData["chapterDur"] = fmt.Sprintf("%v", sd.Course.ChapterDur)
-	mapData["courseStatus"] = fmt.Sprintf("%v", sd.Course.CourseStatus)
-	mapData["chapterStatus"] = fmt.Sprintf("%v", sd.Course.ChapterStatus)
-	mapData["resName"] = fmt.Sprintf("%v", sd.Course.ResName)
-	mapData["state"] = fmt.Sprintf("%v", sd.State)
-	mapData["stateMessage"] = fmt.Sprintf("%v", sd.StateMessage)
-	mapData["body"] = fmt.Sprintf("%v", sd.Body)
+	mapData["operationTime"] = sd.OperationTime
+	mapData["userId"] = sd.UserId
+	mapData["eventType"] = sd.EventType
+	mapData["state"] = sd.State
+	mapData["stateMessage"] = sd.StateMessage
+	mapData["body"] = sd.Course
 	mapData["appId"] = beego.AppConfig.String("gitee::client_id")
 	data, err := json.Marshal(mapData)
 	if err != nil {
@@ -155,14 +143,7 @@ func DataFormatConver(sd StatisticsData) []byte {
 
 func StatisticsLog(sd StatisticsData) error {
 	// 0. Query login information
-	if sd.UserId > 0 && (len(sd.UserName) < 1 || len(sd.UserEmail) < 1) {
-		gui := models.AuthUserInfo{UserId: sd.UserId}
-		queryErr := models.QueryAuthUserInfo(&gui, "UserId")
-		if queryErr == nil {
-			sd.UserName = gui.Name
-			sd.UserEmail = gui.Email
-		}
-	}
+
 	// 1. Create a log file
 	filePath, fErr := CreateStatistLog("")
 	if fErr != nil {
@@ -186,13 +167,14 @@ func StatisticsLog(sd StatisticsData) error {
 	return nil
 }
 
-func WriteCourseData(userId int64, courseId, ChapterId, eventType, resName,
+func WriteCourseData(userId int64, userResId string, courseId, ChapterId, eventType, resName,
 	states, stateMes string, courseStatus, status int,
 	crd *models.Courses, ccp *models.CoursesChapter) {
-	sd := StatisticsData{UserId: userId, UserName: "",
+	sd := StatisticsData{UserId: userId,
 		OperationTime: common.GetCurTime(), EventType: eventType,
 		State: states, StateMessage: stateMes}
 	cd := CourseData{}
+	cd.ResourceId = userResId
 	cd.CourseId = courseId
 	models.QueryCourse(crd, "CourseId")
 	if crd.Id > 0 {

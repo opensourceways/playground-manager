@@ -170,9 +170,10 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 	data, baseErr := base64.StdEncoding.DecodeString(rcp.ResourceContent)
 	if baseErr == nil {
 		strContent := common.DesString(string(data))
+		fmt.Println("----------------解密后:", string(strContent))
 		f.Write(strContent)
 	} else {
-		logs.Error(baseErr)
+		logs.Error("+++++++++++++++++", baseErr)
 		return resConfig, baseErr
 	}
 	resConfig, err = clientcmd.BuildConfigFromFlags("", filePath)
@@ -445,7 +446,6 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	fileName := path.Base(fPath)
 	preFileName := common.GetRandomString(8)
 	downloadUrl := beego.AppConfig.String("template::template_path")
-
 	localPath := filepath.Join(yamlDir, preFileName+"-"+fileName)
 	gitUrl := fmt.Sprintf(downloadUrl+"?file=%s", fPath)
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
@@ -511,6 +511,7 @@ func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) 
 		logs.Error("dynamic.NewForConfig, err: ", err)
 		return
 	}
+
 	if resourceMapper.Scope.Name() == meta.RESTScopeNameNamespace {
 		dr = dynamicClient.Resource(resourceMapper.Resource).Namespace(nameSpace)
 	} else {
@@ -867,10 +868,7 @@ func RecIterList(listData []unstructured.Unstructured, obj *unstructured.Unstruc
 			deleteFlag = true
 		}
 		if !deleteFlag && addFlag && !rls.ServerBoundFlag {
-			ok := AddTmplResourceList(items, crs)
-			if !ok {
-				deleteFlag = true
-			}
+			AddTmplResourceList(items, crs)
 		}
 		if deleteFlag {
 			delErr := dr.Delete(context.TODO(), name, metav1.DeleteOptions{})
@@ -908,11 +906,25 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	if len(crs.CourseId) < 1 {
 		crs.CourseId = courseId
 	}
-	if crs.ResPoolSize < 1 {
-		rtr := models.ResourceTempathRel{CourseId: courseId}
-		quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
-		if quryErr == nil {
+	resourceName, ok := ParsingMapStr(annotations, "resourceName")
+	if !ok || len(resourceName) < 1 {
+		logs.Error("resourceName, does not exist")
+	}
+	resType := ""
+	rtr := models.ResourceTempathRel{CourseId: crs.CourseId}
+	quryErr := models.QueryResourceTempathRel(&rtr, "CourseId")
+	if quryErr == nil {
+		resType = ResName(rtr.ResourcePath)
+		if crs.ResPoolSize < 1 {
 			crs.ResPoolSize = rtr.ResPoolSize
+		}
+	}
+	if courseId != crs.CourseId {
+		return false
+	}
+	if len(resType) > 0 && len(resourceName) > 0 {
+		if resType != resourceName {
+			return false
 		}
 	}
 	spec, ok := ParsingMap(items.Object, "spec")
@@ -951,22 +963,20 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 			}
 		}
 	}
-	if courseId == crs.CourseId {
-		courseChan, ok := CoursePoolVar.Get(courseId)
-		if !ok {
-			courseData := make(chan InitTmplResource, crs.ResPoolSize)
-			courseData <- itr
-			CoursePoolVar.Set(courseId, courseData)
-			logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
-		} else {
-			if len(courseChan) >= crs.ResPoolSize {
-				logs.Error("delete data, itr:", itr)
-				return false
-			}
-			courseChan <- itr
-			CoursePoolVar.Set(courseId, courseChan)
-			logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
+	courseChan, ok := CoursePoolVar.Get(courseId)
+	if !ok {
+		courseData := make(chan InitTmplResource, crs.ResPoolSize)
+		courseData <- itr
+		CoursePoolVar.Set(courseId, courseData)
+		logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
+	} else {
+		if len(courseChan) >= crs.ResPoolSize {
+			logs.Error("delete data, itr:", itr)
+			return false
 		}
+		courseChan <- itr
+		CoursePoolVar.Set(courseId, courseChan)
+		logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
 	}
 	return true
 }
@@ -1013,6 +1023,7 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
+
 	}
 	rls = GetResInfo(objGetData, dr, config, obj, true)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
@@ -1134,6 +1145,7 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					continue
 				} else {
+
 					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
 					if err != nil {
 						logs.Error("UpdateRes err: ", err)

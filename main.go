@@ -18,6 +18,10 @@ func init() {
 
 func main() {
 
+	// token, _ := common.GenToken("22", "abc")
+	// fmt.Println("-------------:", token)
+	//   models.MakeResourceContent()
+	// return
 	// init db
 	dbOk := models.Initdb()
 	if !dbOk {
@@ -28,16 +32,17 @@ func main() {
 	handler.NewCoursePool(0)
 	handler.InitialResourcePool()
 	// Initialize a scheduled task
+
 	taskOk := task.InitTask()
 	if !taskOk {
 		println("error: Timing task initialization failed, the program ends")
 		task.StopTask()
 		return
 	}
+
 	// single run
 	task.StartTask()
 	defer task.StopTask()
 	beego.ErrorController(&controllers.ErrorController{})
-
 	beego.Run()
 }

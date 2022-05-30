@@ -1,0 +1,53 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": null,
+    "definitions": {
+        "CheckPgweb": {
+            "title": "CheckPgweb",
+            "type": "object"
+        },
+        "CourseChapter": {
+            "title": "CourseChapter",
+            "type": "object"
+        },
+        "GetCrdResource": {
+            "title": "GetCrdResource",
+            "type": "object"
+        },
+        "Oauth2CallBack": {
+            "title": "Oauth2CallBack",
+            "type": "object"
+        },
+        "Oauth2CallBackLinks": {
+            "title": "Oauth2CallBackLinks",
+            "type": "object"
+        },
+        "UserInfo": {
+            "title": "UserInfo",
+            "type": "object"
+        },
+        "models.CourseChapter": {
+            "title": "CourseChapter",
+            "type": "object"
+        },
+        "models.CreateCrdResource": {
+            "title": "CreateCrdResource",
+            "type": "object"
+        },
+        "models.Oauth2Authentication": {
+            "title": "Oauth2Authentication",
+            "type": "object"
+        },
+        "models.callback": {
+            "title": "callback",
+            "type": "object"
+        },
+        "true": {
+            "title": "true",
+            "type": "object"
+        }
+    }
+}

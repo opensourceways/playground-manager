@@ -3,14 +3,16 @@ package common
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 	"unicode"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"k8s.io/client-go/rest"
 )
 
 var GlobK8sConfig *rest.Config
@@ -33,7 +35,7 @@ func GetCurDate() string {
 }
 
 func GetCurTime() string {
-	return time.Now().Format(DATE_FORMAT)
+	return time.Now().Format(DATE_T_Z_FORMAT)
 }
 
 func CreateDir(dir string) error {
@@ -46,7 +48,7 @@ func CreateDir(dir string) error {
 	return err
 }
 
-func FileExists(path string) (bool) {
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
@@ -109,15 +111,25 @@ func TimeStrToInt(ts, layout string) int64 {
 
 // Time string to timestamp
 func PraseTimeInt(stringTime string) int64 {
+	if strings.Contains(stringTime, "T") {
+		return TimeStrToInt(stringTime, DATE_T_FORMAT)
+	}
 	return TimeStrToInt(stringTime, DATE_FORMAT)
 }
 
 func PraseTimeTint(tsStr string) int64 {
-	return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	if strings.Contains(tsStr, "T") {
+		return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	}
+	return TimeStrToInt(tsStr, DATE_FORMAT)
 }
 
-func LocalTimeToUTC(strTime string) time.Time {
-	local, _ := time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+func LocalTimeToUTC(strTime string) (local time.Time) {
+	if strings.Contains(strTime, "T") {
+		local, _ = time.ParseInLocation(DATE_T_FORMAT, strTime, time.Local)
+	} else {
+		local, _ = time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+	}
 	return local
 }
 

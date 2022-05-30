@@ -4,16 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	ymV2 "gopkg.in/yaml.v2"
+	"fmt"
 	"html/template"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/dynamic"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +16,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	ymV2 "gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/client-go/dynamic"
 )
 
 type ResourceData struct {
@@ -189,6 +191,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
+		logs.Error("---------yamlData:----", string(yamlData))
 		logs.Error("failed to get GVK, err: ", err)
 		return err
 	}
@@ -222,6 +225,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	} else {
 		logs.Info("Resource is being created, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	}
+
 	return nil
 }
 
@@ -296,12 +300,15 @@ func CreatePoolResource(rd *ResourceData) {
 	downLock.Unlock()
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rd.EnvResource)
+		time.Sleep(time.Second * 1)
 		return
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)
+	fmt.Println("--------------------------------CreatePoolResource:content:", string(content))
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
-		logs.Error("createErr: ", createErr)
+		logs.Error("createErr: -----------------", createErr)
+		time.Sleep(time.Minute * 2)
 		return
 	}
 }
@@ -332,6 +339,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
+		fmt.Println(cap(coursePool), ok, "===========1===== CoursePoolVar.Get=====================")
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
@@ -342,9 +350,12 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		} else {
 			for {
 				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
+				fmt.Println(len(coursePool), "=========2======= CoursePoolVar.Get=====================", rt.ResPoolSize)
 				if len(coursePool) < rt.ResPoolSize {
 					CreatePoolResource(&rd)
 				} else {
+					fmt.Println(len(coursePool), "=========3======= break=====================", rt.ResPoolSize)
+
 					break
 				}
 			}
@@ -371,8 +382,10 @@ func InitialResourcePool() {
 		return
 	}
 	// 3. Query for available resources
+	fmt.Println("----------------InitalResPool------")
 	InitalResPool(rtr)
 	// 4. Print resource pool data
+	fmt.Println("---1-------------PrintResPool------")
 	PrintResPool()
 }
 
