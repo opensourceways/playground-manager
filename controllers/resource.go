@@ -262,8 +262,8 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 
 	}
 
-	eoi := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
-	err = models.QueryResourceInfo(&eoi, "Subdomain")
+	resourceInfo := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
+	err = models.QueryResourceInfo(&resourceInfo, "Subdomain")
 	if err != nil {
 		u.Data["json"] = map[string]interface{}{
 			"detail":    "查询Subdomain时候出错 ",
@@ -279,19 +279,25 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 	tokenClaims, err := jwt.ParseWithClaims(checkSubdomain.Token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(common.JwtSecret), nil
 	})
+	if tokenClaims == nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail": "token 异常 ",
+			"body":   checkSubdomain,
+			"error":  err,
+		}
+		u.ServeJSON()
+		return
+	}
 
-	if tokenClaims != nil {
-		if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
-			tokenUserID, _ = strconv.Atoi(claims.Userid)
-			if tokenUserID == int(eoi.UserId) {
-				u.Data["json"] = "ok"
-				u.ServeJSON()
-				return
-			}
+	if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
+		tokenUserID, _ = strconv.Atoi(claims.Userid)
+		if tokenUserID == int(resourceInfo.UserId) {
+			u.Data["json"] = "ok"
+			u.ServeJSON()
+			return
 		}
 	}
-	u.Data["json"] = eoi
-
+	u.Data["json"] = resourceInfo
 	u.ServeJSON()
 	return
 }
