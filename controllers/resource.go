@@ -261,6 +261,19 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 		return
 
 	}
+
+	eoi := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
+	err = models.QueryResourceInfo(&eoi, "Subdomain")
+	if err != nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail":    "查询Subdomain时候出错 ",
+			"Subdomain": checkSubdomain.Subdomain,
+			"error":     err,
+		}
+		u.ServeJSON()
+		return
+	}
+
 	var tokenUserID int
 	var claims common.Claims
 	tokenClaims, err := jwt.ParseWithClaims(checkSubdomain.Token, &claims, func(token *jwt.Token) (interface{}, error) {
@@ -269,42 +282,15 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 
 	if tokenClaims != nil {
 		if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
-			tokenUserID, err = strconv.Atoi(claims.Userid)
-			if err != nil {
-				u.Data["json"] = map[string]interface{}{
-					"body":  checkSubdomain,
-					"error": "token 不合法",
-				}
+			tokenUserID, _ = strconv.Atoi(claims.Userid)
+			if tokenUserID == int(eoi.UserId) {
+				u.Data["json"] = "ok"
 				u.ServeJSON()
 				return
 			}
 		}
 	}
-	if tokenUserID <= 0 {
-		u.Data["json"] = map[string]interface{}{
-			"body":  checkSubdomain,
-			"error": "查无此人",
-		}
-		u.ServeJSON()
-		return
-	}
-	var subdomainList []string
-	var listSize int64
-	subdomainList, listSize, err = models.QueryUserSubdomains(tokenUserID)
-	if err != nil {
-		u.Data["json"] = map[string]interface{}{
-			"detail": "查询异常 ",
-			"body":   checkSubdomain,
-			"error":  err,
-		}
-		u.ServeJSON()
-		return
-	}
-	if listSize == 0 {
-		u.Data["json"] = "[]"
-	} else {
-		u.Data["json"] = subdomainList
-	}
+	u.Data["json"] = eoi
 
 	u.ServeJSON()
 	return
