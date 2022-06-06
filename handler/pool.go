@@ -253,7 +253,7 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	if !ok {
 		resCh := make(chan InitTmplResource, rt.ResPoolSize)
 		//CoursePoolVar.CourseMap[rt.CourseId] = resCh
-		logs.Error("QueryResourceList , rt: ", rt)
+		logs.Error("QueryResourceList 0000000000000000000000000, rt: ", rt)
 		CoursePoolVar.Set(rt.CourseId, resCh)
 	} else {
 		if len(initRes) >= rt.ResPoolSize {
@@ -343,7 +343,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		fmt.Println(cap(coursePool), ok, "===========1===== CoursePoolVar.Get=====================")
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
-			logs.Error("InitalResPool , rt: ", rt)
+			logs.Error("InitalResPool ,11111111111111111111 rt: ", rt)
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
 			CoursePoolVar.Set(rt.CourseId, resCh)
 			for i := 0; i < rt.ResPoolSize; i++ {
@@ -398,7 +398,7 @@ func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
-			logs.Error("ApplyCoursePool 1, rt: ", rt)
+			logs.Error("ApplyCoursePool 1,22222222222222222222 rt: ", rt)
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
 			CoursePoolVar.Set(rt.CourseId, resCh)
 			for i := 0; i < rt.ResPoolSize; i++ {
@@ -415,7 +415,7 @@ func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 					}
 				} else {
 					resCh := make(chan InitTmplResource, rt.ResPoolSize)
-					logs.Error("ApplyCoursePool 2, rt: ", rt)
+					logs.Error("ApplyCoursePool 2,3333333333333333333333333333 rt: ", rt)
 					CoursePoolVar.Set(rt.CourseId, resCh)
 					for i := 0; i < rt.ResPoolSize; i++ {
 						CreatePoolResource(&rd)
