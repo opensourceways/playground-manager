@@ -413,7 +413,7 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	logs.Info("yamlValue: ", yamlValue)
 	if len(yamlValue) > 0 {
 		resMap := make(map[interface{}]interface{})
-		resMap["userId"] = cr.LoginName
+		resMap["userId"] = "" // cr.LoginName
 		resMap["resourceName"] = cr.ResourceName
 		resMap["courseId"] = cr.CourseId
 		metadata, ok := yamlValue["metadata"]
