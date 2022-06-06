@@ -96,7 +96,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 	resName := "res" + rd.CourseId + "-" + rd.ResourceId + "-" + resourceName + "-" +
 		strconv.FormatInt(time.Now().Unix(), 10) + common.RandomString(32)
 	rtp.UserId = "default"
-	resName = "res" + common.EncryptMd5(resName)
+	//   resName = "res" + common.EncryptMd5(resName)
 	cr.UserId = rtp.UserId
 	cr.CourseId = rd.CourseId
 	cr.ResourceName = ResName(rd.EnvResource)
@@ -116,7 +116,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 }
 
 func PoolParseTmpl(yamlDir string, rd *ResourceData, localPath string) []byte {
-	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
+	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.sh")
 	rtp := InitTmplResource{ContactEmail: contactEmail}
 	cr := CourseResources{}
 	InitPoolTmplPrarse(&rtp, rd, &cr)
