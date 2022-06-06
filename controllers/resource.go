@@ -139,7 +139,7 @@ func (u *CrdResourceControllers) Post() {
 			1, 1, &crd, &ccp)
 		return
 	}
-	rcp.ResourcePath = handler.ResName(rcp.ResourcePath)
+
 	logs.Error(rp.TemplatePath, "----------QueryCourse-----------------------", rcp.ResourcePath)
 	rp.TemplatePath = rcp.ResourcePath
 	rp.ResourceId = rcp.ResourceId
