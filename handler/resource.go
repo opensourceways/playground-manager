@@ -1256,7 +1256,7 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr, &itr)
 	if createErr != nil {
 		logs.Error("CreateInstance createErr: ", createErr)
-		logs.Error("CreateInstance yamlData: ", yamlData)
+		logs.Error("CreateInstance yamlData: ", string(yamlData))
 		return
 	}
 }
