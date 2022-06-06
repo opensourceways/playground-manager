@@ -327,7 +327,7 @@ func ProcCourseAndResRel(courseId, courseDir, eulerBranch string) {
 
 func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, courseDir string) error {
 	rcpErr := errors.New("")
-	trymePath := fmt.Sprintf("%v", rcp.ResourcePath)
+	trymePath := fmt.Sprintf("tryme/%v", rcp.ResourcePath)
 	originTemplatePath := fmt.Sprintf("%v", rcp.EulerBranch)
 	defTemplatePath := fmt.Sprintf("%v/%v", DEFAULT, rcp.EulerBranch)
 	defContainerTemplatePath := fmt.Sprintf("%v/%v_%v", DEFAULT, rcp.EulerBranch, CONTAINER)
