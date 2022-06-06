@@ -324,6 +324,8 @@ func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr *InitTmplRe
 	} else {
 		InitReqTmplPrarse(&rtp, rr, cr, itr)
 	}
+	logs.Error(queryFlag, "----------------: ", rtp)
+
 	var templates *template.Template
 	var allFiles []string
 	files, dirErr := ioutil.ReadDir(yamlDir)
@@ -413,7 +415,7 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	logs.Info("yamlValue: ", yamlValue)
 	if len(yamlValue) > 0 {
 		resMap := make(map[interface{}]interface{})
-		resMap["userId"] = "" // cr.LoginName
+		resMap["userId"] = cr.UserId
 		resMap["resourceName"] = cr.ResourceName
 		resMap["courseId"] = cr.CourseId
 		metadata, ok := yamlValue["metadata"]
