@@ -1189,6 +1189,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(yamlData, config)
+	fmt.Println("------------CreateInstance  yaml:------- ", string(yamlData))
 	if err != nil {
 		logs.Error("yaml1.Unmarshal, err: ", err)
 		return err
