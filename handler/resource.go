@@ -717,11 +717,19 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 			continue
 		}
 		switch evName {
+		case "UNUSED_CREDENTIAL":
+			if len(itr.NamePassword) > 1 {
+				ev["value"] = itr.NamePassword
+			}
 		case "GOTTY_CREDENTIAL":
 			if len(itr.NamePassword) > 1 {
 				ev["value"] = itr.NamePassword
 			}
 		case "COMMUNITY_EMAIL":
+			if len(itr.ContactEmail) > 1 {
+				ev["value"] = itr.ContactEmail
+			}
+		case "UNUSED_COMMUNITY_EMAIL":
 			if len(itr.ContactEmail) > 1 {
 				ev["value"] = itr.ContactEmail
 			}
