@@ -479,6 +479,7 @@ func SyncCourse() error {
 	if os.Getenv("CHAPTER_DETAIL_URL") != "" {
 		chapterDetailUrl = os.Getenv("CHAPTER_DETAIL_URL")
 	}
+	logs.Error("---------------:courseUrl:", courseUrl)
 	body, resErr := http.HTTPGitGet(courseUrl)
 	if resErr != nil {
 		logs.Error("SyncCourse, resErr: ", resErr)
