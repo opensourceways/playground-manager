@@ -170,7 +170,7 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 	data, baseErr := base64.StdEncoding.DecodeString(rcp.ResourceContent)
 	if baseErr == nil {
 		strContent := common.DesString(string(data))
-		fmt.Println("----------------解密后:", string(strContent))
+		// fmt.Println("----------------解密后:", string(strContent))
 		f.Write(strContent)
 	} else {
 		logs.Error("+++++++++++++++++", baseErr)
