@@ -1166,10 +1166,10 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				}
 			}
 		} else {
-			return errors.New("Instance creation failed")
+			return errors.New("Instance creation failed 1.courseID :" + rr.CourseId)
 		}
 	} else {
-		return errors.New("Instance creation failed")
+		return errors.New("Instance creation failed 2.courseID :" + rr.CourseId)
 	}
 	return nil
 }
@@ -1255,7 +1255,8 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	yamlData := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, true)
 	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr, &itr)
 	if createErr != nil {
-		logs.Error("createErr: ", createErr)
+		logs.Error("CreateInstance createErr: ", createErr)
+		logs.Error("CreateInstance yamlData: ", yamlData)
 		return
 	}
 }
