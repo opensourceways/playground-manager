@@ -96,7 +96,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 	resName := "res" + rd.CourseId + "-" + rd.ResourceId + "-" + resourceName + "-" +
 		strconv.FormatInt(time.Now().Unix(), 10) + common.RandomString(32)
 	rtp.UserId = "default"
-	//   resName = "res" + common.EncryptMd5(resName)
+	resName = "res" + common.EncryptMd5(resName)
 	cr.UserId = rtp.UserId
 	cr.CourseId = rd.CourseId
 	cr.ResourceName = ResName(rd.EnvResource)
