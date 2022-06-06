@@ -324,7 +324,7 @@ func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr *InitTmplRe
 	} else {
 		InitReqTmplPrarse(&rtp, rr, cr, itr)
 	}
-	logs.Error(queryFlag, "----------------: ", rtp)
+	logs.Error(queryFlag, "----------------: ", cr)
 
 	var templates *template.Template
 	var allFiles []string
