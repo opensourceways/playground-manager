@@ -977,7 +977,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		courseData := make(chan InitTmplResource, crs.ResPoolSize)
 		courseData <- itr
 		CoursePoolVar.Set(courseId, courseData)
-		logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
+		logs.Info("courseId: ", courseId, "----------1--------len(courseData)=", len(courseData))
 	} else {
 		if len(courseChan) >= crs.ResPoolSize {
 			logs.Error("delete data, itr:", itr)
@@ -985,7 +985,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		}
 		courseChan <- itr
 		CoursePoolVar.Set(courseId, courseChan)
-		logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
+		logs.Info("courseId: ", courseId, "----------2--------len(courseChan)=", len(courseChan))
 	}
 	return true
 }
@@ -1208,7 +1208,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 		logs.Notice("Get an instance from the prepared instance, err: ", err)
 		err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 		if err != nil {
-			logs.Error("ApplyPoolInstance, err: ", err)
+			logs.Error("ApplyPoolInstance,0 err: ", err)
 			return err
 		}
 	} else {
@@ -1223,7 +1223,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			rr.ForceDelete = 1
 			err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 			if err != nil {
-				logs.Error("ApplyPoolInstance, err: ", err)
+				logs.Error("ApplyPoolInstance,1 err: ", err)
 				return err
 			}
 		} else {
@@ -1231,7 +1231,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			if err != nil {
 				err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 				if err != nil {
-					logs.Error("ApplyPoolInstance, err: ", err)
+					logs.Error("ApplyPoolInstance,2 err: ", err)
 					return err
 				}
 			}
