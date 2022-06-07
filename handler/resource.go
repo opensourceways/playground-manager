@@ -1256,7 +1256,7 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	cr := CourseResources{CourseId: rr.CourseId, ChapterId: rr.ChapterId}
 
 	logs.Error("=================CreateEnvResource====", rr)
-	rr.EnvResource = ResName(rr.EnvResource)
+	// rr.EnvResource = ResName(rr.EnvResource)
 	yamlData := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, true)
 	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr, &itr)
 	if createErr != nil {
