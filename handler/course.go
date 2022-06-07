@@ -336,7 +336,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	oldTemplatePath := fmt.Sprintf("%v/%v", rcp.EulerBranch, LXD)
 	rcp.ResourcePath = trymePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr := models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
@@ -345,7 +345,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	}
 	rcp.ResourcePath = originTemplatePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
@@ -354,7 +354,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	}
 	rcp.ResourcePath = defTemplatePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
@@ -364,7 +364,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 
 	rcp.ResourcePath = defContainerTemplatePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
@@ -373,7 +373,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	}
 	rcp.ResourcePath = customTemplatePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
@@ -383,7 +383,7 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 
 	rcp.ResourcePath = oldTemplatePath
 	logs.Info("试  :", rcp.ResourcePath)
-	models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
