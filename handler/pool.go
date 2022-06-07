@@ -294,7 +294,7 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	return nil
 }
 
-func CreatePoolResource(rd *ResourceData) {
+func CreatePoolResource(rd *ResourceData) error {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
 	downErr, localPath := DownLoadTemplate(yamlDir, rd.EnvResource)
@@ -302,24 +302,25 @@ func CreatePoolResource(rd *ResourceData) {
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rd.EnvResource)
 		time.Sleep(time.Second * 1)
-		return
+		return downErr
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)
 	fmt.Println("--------------------------------CreatePoolResource:content:", string(content))
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
 		logs.Error("createErr: -----------------", createErr)
-		time.Sleep(time.Minute * 2)
-		return
+		time.Sleep(time.Minute * 20)
+		return createErr
 	}
+	return nil
 }
 
-func AddResPool(courseId, resourceId, envResource string) {
+func AddResPool(courseId, resourceId, envResource string) error {
 	rtr := models.ResourceTempathRel{CourseId: courseId, ResourceId: resourceId, ResourcePath: envResource}
 	queryErr := models.QueryResourceTempathRel(&rtr, "CourseId", "ResourceId", "ResourcePath")
 	if queryErr != nil {
 		logs.Error("queryErr: ", queryErr)
-		return
+		return queryErr
 	}
 	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource,
 		CourseId: courseId, ResPoolSize: rtr.ResPoolSize}

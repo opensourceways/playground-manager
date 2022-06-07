@@ -1133,13 +1133,19 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 				if err != nil {
 					logs.Error("failed to get GVK, err: ", err)
-					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					if err != nil {
+						time.Sleep(time.Minute * 10)
+					}
 					break
 				}
 				dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 				if err != nil {
 					logs.Error("failed to get dr: ", err)
-					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					if err != nil {
+						time.Sleep(time.Minute * 10)
+					}
 					break
 				}
 				// store db
@@ -1147,23 +1153,35 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				err = ymV2.Unmarshal(yamlData, config)
 				if err != nil {
 					logs.Error("yaml1.Unmarshal, err: ", err)
-					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					if err != nil {
+						time.Sleep(time.Minute * 10)
+					}
 					break
 				}
 				objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 				if err != nil {
 					logs.Error("ApplyPoolInstance, dr.Get, err: ", err)
-					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					if err != nil {
+						time.Sleep(time.Minute * 10)
+					}
 					continue
 				} else {
 
 					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
 					if err != nil {
 						logs.Error("UpdateRes err: ", err)
-						AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+						err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+						if err != nil {
+							time.Sleep(time.Minute * 10)
+						}
 						continue
 					}
-					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
+					if err != nil {
+						time.Sleep(time.Minute * 10)
+					}
 					break
 				}
 			}
