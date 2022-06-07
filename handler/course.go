@@ -240,6 +240,7 @@ func (ep EnvPrams) AddCourseToDb(cr interface{}) {
 					courseId := cor["id"].(string)
 					chapterUrl := fmt.Sprintf(ep.ChapterUrl, coursePathName)
 					body, resErr := http.HTTPGitGet(chapterUrl)
+					logs.Error(body, "----------------:chapterUrl:", chapterUrl)
 					if resErr != nil {
 						logs.Error("AddCourseToDb, resErr: ", resErr, ",body: ", body)
 						continue
