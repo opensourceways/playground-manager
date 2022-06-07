@@ -324,7 +324,7 @@ func AddResPool(courseId, resourceId, envResource string) error {
 	}
 	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource,
 		CourseId: courseId, ResPoolSize: rtr.ResPoolSize}
-	CreatePoolResource(&rd)
+	return CreatePoolResource(&rd)
 }
 
 func InitalResPool(rtr []models.ResourceTempathRel) {
