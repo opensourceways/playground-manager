@@ -352,7 +352,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 				err := CreatePoolResource(&rd)
 				if err != nil {
 					logs.Error("CreatePoolResource ,-------------- rt: ", err)
-					time.Sleep(time.Minute)
+					time.Sleep(time.Second)
 				}
 			}
 		} else {
@@ -363,11 +363,11 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 					err := CreatePoolResource(&rd)
 					if err != nil {
 						logs.Error("CreatePoolResource ,-------------------- rt: ", err)
-						time.Sleep(time.Minute)
+						time.Sleep(time.Second)
 					}
 				} else {
 					fmt.Println(len(coursePool), "=========3======= break=====================", rt.ResPoolSize)
-					time.Sleep(time.Minute)
+					time.Sleep(time.Second)
 					break
 				}
 			}
