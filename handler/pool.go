@@ -366,7 +366,7 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 						time.Sleep(time.Second)
 					}
 				} else {
-					fmt.Println(len(coursePool), "=========3======= break=====================", rt.ResPoolSize)
+					fmt.Println(len(coursePool), "=========3======:c===", rt.ResPoolSize)
 					time.Sleep(time.Second)
 					break
 				}
