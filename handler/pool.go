@@ -219,7 +219,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	}
 	logs.Info(" -------------暂停10秒 ")
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 
 	rls := GetResInfo(objCreate, dr, config, obj, false)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
