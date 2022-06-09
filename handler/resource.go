@@ -279,7 +279,9 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	cr.ResourceName = rr.EnvResource
 	rtp.Name = resAlias
 	subDomain := itr.Subdomain
+
 	namePassword := itr.NamePassword
+
 	fmt.Println("================================= NamePassword:", itr.NamePassword)
 
 	nameList := strings.Split(namePassword, ":")
@@ -293,8 +295,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 		eoi.UserId = rr.UserId
 		eoi.Subdomain = subDomain
 		eoi.ResourceAlias = resAlias
-		eoi.UserName = nameList[0]
-		eoi.PassWord = nameList[1]
+		eoi.UserName = " nameList[0]"
+		eoi.PassWord = "nameList[1]"
 		models.UpdateResourceInfo(&eoi, "UserId", "UpdateTime", "subDomain", "ResourceAlias", "UserName", "passWord")
 	} else {
 		logs.Info("queryErr: ", queryErr)
@@ -306,8 +308,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 		rtp.Subdomain = subDomain
 		eoi.Subdomain = subDomain
 		rtp.NamePassword = namePassword
-		eoi.UserName = nameList[0]
-		eoi.PassWord = nameList[1]
+		eoi.UserName = " nameList[0]"
+		eoi.PassWord = " nameList[1]"
 		userId := strconv.FormatInt(rr.UserId, 10) + rr.EnvResource
 		rtp.UserId = RetUserName(userInfo)
 		eoi.ResourId = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userId)))
