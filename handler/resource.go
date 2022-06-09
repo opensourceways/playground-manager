@@ -410,7 +410,7 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	decErr := ymV2.Unmarshal(yamlData, &yamlValue)
 	if decErr != nil {
 		logs.Error("decErr: ", decErr)
-		logs.Error("--------yaml:", sring(yamlData))
+		logs.Error("--------yaml:", string(yamlData))
 		return yamlData
 	}
 	logs.Info("yamlValue: ", yamlValue)
