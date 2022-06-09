@@ -924,13 +924,13 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		}
 	}
 	if courseId != crs.CourseId {
-		logs.Error("-----course id not equel, courseId :%v, crs.CourseId:%v ", courseId, crs.CourseId)
+		logs.Error("-----course id not equal, courseId :%v, crs.CourseId:%v ", courseId, crs.CourseId)
 		time.Sleep(time.Second * 10)
 		return false
 	}
 	if len(resType) > 0 && len(resourceName) > 0 {
 		if resType != resourceName {
-			logs.Error("-----resourceName not equel, resType :%v,resourceName:%v ", resType, resourceName)
+			logs.Error("-----resourceName not equal, resType :%v,resourceName:%v ", resType, resourceName)
 			time.Sleep(time.Second * 10)
 			return false
 		}
