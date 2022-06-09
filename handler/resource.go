@@ -888,20 +888,20 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	}
 	name, ok := ParsingMapStr(metadata, "name")
 	if !ok || len(name) < 1 {
-		logs.Error("name, does not exist")
+		logs.Error("name, does not exist----------------")
 		time.Sleep(time.Second * 10)
 		return false
 	}
 	itr := InitTmplResource{Name: name}
 	annotations, ok := ParsingMap(metadata, "annotations")
 	if !ok {
-		logs.Error("annotations, does not exist")
+		logs.Error("annotations, does not exist-------------")
 		time.Sleep(time.Second * 10)
 		return false
 	}
 	courseId, ok := ParsingMapStr(annotations, "courseId")
 	if !ok || len(courseId) < 1 {
-		logs.Error("courseId, does not exist")
+		logs.Error("courseId, does not exist-------------")
 		time.Sleep(time.Second * 10)
 		return false
 	}
@@ -910,7 +910,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	}
 	resourceName, ok := ParsingMapStr(annotations, "resourceName")
 	if !ok || len(resourceName) < 1 {
-		logs.Error("resourceName, does not exist")
+		logs.Error("resourceName, does not exist-----------")
 		time.Sleep(time.Second * 10)
 		return false
 	}
