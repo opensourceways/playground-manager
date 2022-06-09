@@ -284,7 +284,7 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 
 	fmt.Println("================================= NamePassword:", itr.NamePassword)
 
-	nameList := strings.Split(namePassword, ":")
+	// nameList := strings.Split(namePassword, ":")
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
 	if eoi.Id > 0 {
