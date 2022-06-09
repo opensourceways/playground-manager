@@ -279,9 +279,7 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	cr.ResourceName = rr.EnvResource
 	rtp.Name = resAlias
 	subDomain := itr.Subdomain
-
 	namePassword := itr.NamePassword
-
 	fmt.Println("================================= NamePassword:", itr.NamePassword)
 
 	// nameList := strings.Split(namePassword, ":")
