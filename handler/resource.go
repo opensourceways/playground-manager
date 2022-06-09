@@ -489,7 +489,7 @@ func UnstructuredYaml(yamlData []byte) {
 		logs.Error("dec.Decode, err: ", err)
 	}
 	// Get the common metadata, and show GVK
-	logs.Info(obj.GetName(), gvk.String())
+	// logs.Info(obj.GetName(), gvk.String())
 }
 
 func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) (dr dynamic.ResourceInterface, err error) {
