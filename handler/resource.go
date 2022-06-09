@@ -282,7 +282,11 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	namePassword := itr.NamePassword
 	fmt.Println("================================= NamePassword:", itr.NamePassword)
 
-	// nameList := strings.Split(namePassword, ":")
+	nameList := strings.Split(namePassword, ":")
+	if len(nameList) != 2 {
+		nameList[0] = common.RandomString(32)
+		nameList[1] = common.RandomString(32)
+	}
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
 	if eoi.Id > 0 {
@@ -293,8 +297,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 		eoi.UserId = rr.UserId
 		eoi.Subdomain = subDomain
 		eoi.ResourceAlias = resAlias
-		eoi.UserName = "abc" // nameList[0]
-		eoi.PassWord = "abc" // nameList[1]
+		eoi.UserName = nameList[0]
+		eoi.PassWord = nameList[1]
 		models.UpdateResourceInfo(&eoi, "UserId", "UpdateTime", "subDomain", "ResourceAlias", "UserName", "passWord")
 	} else {
 		logs.Info("queryErr: ", queryErr)
@@ -306,8 +310,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 		rtp.Subdomain = subDomain
 		eoi.Subdomain = subDomain
 		rtp.NamePassword = namePassword
-		eoi.UserName = "abc" // nameList[0]
-		eoi.PassWord = "abc" // nameList[1]
+		eoi.UserName = nameList[0]
+		eoi.PassWord = nameList[1]
 		userId := strconv.FormatInt(rr.UserId, 10) + rr.EnvResource
 		rtp.UserId = RetUserName(userInfo)
 		eoi.ResourId = common.EncryptMd5(base64.StdEncoding.EncodeToString([]byte(userId)))
