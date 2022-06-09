@@ -10,59 +10,59 @@ import (
 type AuthUserInfo struct {
 	UserId              int64  `orm:"pk;auto;column(id)"`
 	SubUid              string `orm:"size(256);column(uid);unique" description:"用户的uuid"`
-	Name                string `orm:"size(512);column(name)" description:"姓名"`
-	UserName            string `orm:"size(512);column(user_name)" description:"用户名"`
-	PhoneNumber         string `orm:"size(32);column(phone_number)" description:"手机号"`
+	Name                string `orm:"size(512);column(name)"description:"姓名"`
+	UserName            string `orm:"size(512);column(user_name)"description:"用户名"`
+	PhoneNumber         string `orm:"size(32);column(phone_number)"description:"手机号"`
 	PhoneNumberVerified int8   `orm:"column(phone_number_verified)" description:"手机号是否认证, 0: 未认证;1:已认证"`
-	NickName            string `orm:"size(512);column(nick_name)" description:"昵称"`
-	Picture             string `orm:"type(text);column(picture)" description:"头像"`
-	Email               string `orm:"size(512);column(email)" description:"电子邮箱"`
+	NickName            string `orm:"size(512);column(nick_name)"description:"昵称"`
+	Picture             string `orm:"type(text);column(picture)"description:"头像"`
+	Email               string `orm:"size(512);column(email)"description:"电子邮箱"`
 	EmailVerified       int8   `orm:"column(email_verified)" description:"邮箱是否被认证, 0: 未认证;1:已认证"`
 	Status              int8   `orm:"column(status)" description:"1:正常;2:已删除"`
 	AccessToken         string `orm:"type(text);column(access_token)"`
 	ExpirationTime      string `orm:"size(32);column(expiration_time)" description:"token的过期时间"`
-	CreateTime          string `orm:"size(32);column(create_time);" description:"创建时间"`
-	UpdateTime          string `orm:"size(32);column(update_time);null" description:"更新时间"`
-	DeleteTime          string `orm:"size(32);column(delete_time);null" description:"删除时间"`
+	CreateTime          string `orm:"size(32);column(create_time);"description:"创建时间"`
+	UpdateTime          string `orm:"size(32);column(update_time);null"description:"更新时间"`
+	DeleteTime          string `orm:"size(32);column(delete_time);null"description:"删除时间"`
 }
 
 type AuthUserDetail struct {
 	UserDetailId      int64  `orm:"pk;auto;column(id)"`
 	UserId            int64  `orm:"column(user_id);index" description:"用户id"`
 	IdentityId        string `orm:"size(256);column(identity_id);unique" description:"外部身份识别id"`
-	GivenName         string `orm:"size(512);column(given_name)" description:"名字"`
-	FamilyName        string `orm:"size(512);column(family_name)" description:"姓氏"`
-	MiddleName        string `orm:"size(512);column(middle_name)" description:"中间名"`
-	PreferredNsername string `orm:"size(512);column(preferred_username)" description:"希望被称呼的名字"`
+	GivenName         string `orm:"size(512);column(given_name)"description:"名字"`
+	FamilyName        string `orm:"size(512);column(family_name)"description:"姓氏"`
+	MiddleName        string `orm:"size(512);column(middle_name)"description:"中间名"`
+	PreferredNsername string `orm:"size(512);column(preferred_username)"description:"希望被称呼的名字"`
 	Profile           string `orm:"size(32);column(profile)" description:"基础资料"`
-	Website           string `orm:"type(text);colnum(website)" description:"网站链接"`
-	Gender            string `orm:"size(512);column(gender)" description:"性别"`
-	Birthdate         string `orm:"size(512);column(birthdate)" description:"生日"`
-	Zoneinfo          string `orm:"size(512);colnum(zoneinfo)" description:"时区"`
-	Locale            string `orm:"size(512);column(locale)" description:"区域"`
-	Formatted         string `orm:"size(512);column(formatted)" description:"详细地址"`
-	StreetAddress     string `orm:"size(512);column(street_address)" description:"街道地址"`
-	Locality          string `orm:"size(512);column(locality)" description:"城市"`
-	Region            string `orm:"size(512);column(region)" description:"省"`
-	PostalCode        string `orm:"size(512);column(postal_code)" description:"邮编"`
-	Country           string `orm:"size(512);column(country)" description:"国家"`
-	Unionid           string `orm:"size(512);column(union_id)" description:""`
-	Openid            string `orm:"size(512);column(openid)" description:""`
-	CurStatus         string `orm:"size(128);column(cur_status);" description:"是否激活"`
-	UpdatedAt         string `orm:"size(64);column(updated_at)" description:"信息更新时间"`
-	CreatedAt         string `orm:"size(64);column(created_at)" description:""`
-	Provider          string `orm:"size(512);column(provider)" description:""`
-	ExtIdpId          string `orm:"size(512);column(ex_id)" description:""`
-	UserIdInIdp       string `orm:"size(512);column(user_in_id)" description:""`
-	UserName          string `orm:"size(512);column(user_name)" description:""`
-	NickName          string `orm:"size(512);column(nick_name)" description:""`
-	Photo             string `orm:"size(512);column(photo)" description:""`
-	Company           string `orm:"size(512);column(company)" description:""`
-	City              string `orm:"size(512);column(city)" description:""`
-	Email             string `orm:"size(512);column(email)" description:""`
-	CreateTime        string `orm:"size(32);column(create_time);" description:"创建时间"`
-	UpdateTime        string `orm:"size(32);column(update_time);null" description:"更新时间"`
-	DeleteTime        string `orm:"size(32);column(delete_time);null" description:"删除时间"`
+	Website           string `orm:"type(text);colnum(website)"description:"网站链接"`
+	Gender            string `orm:"size(512);column(gender)"description:"性别"`
+	Birthdate         string `orm:"size(512);column(birthdate)"description:"生日"`
+	Zoneinfo          string `orm:"size(512);colnum(zoneinfo)"description:"时区"`
+	Locale            string `orm:"size(512);column(locale)"description:"区域"`
+	Formatted         string `orm:"size(512);column(formatted)"description:"详细地址"`
+	StreetAddress     string `orm:"size(512);column(street_address)"description:"街道地址"`
+	Locality          string `orm:"size(512);column(locality)"description:"城市"`
+	Region            string `orm:"size(512);column(region)"description:"省"`
+	PostalCode        string `orm:"size(512);column(postal_code)"description:"邮编"`
+	Country           string `orm:"size(512);column(country)"description:"国家"`
+	Unionid           string `orm:"size(512);column(union_id)"description:""`
+	Openid            string `orm:"size(512);column(openid)"description:""`
+	CurStatus         string `orm:"size(128);column(cur_status);"description:"是否激活"`
+	UpdatedAt         string `orm:"size(64);column(updated_at)"description:"信息更新时间"`
+	CreatedAt         string `orm:"size(64);column(created_at)"description:""`
+	Provider          string `orm:"size(512);column(provider)"description:""`
+	ExtIdpId          string `orm:"size(512);column(ex_id)"description:""`
+	UserIdInIdp       string `orm:"size(512);column(user_in_id)"description:""`
+	UserName          string `orm:"size(512);column(user_name)"description:""`
+	NickName          string `orm:"size(512);column(nick_name)"description:""`
+	Photo             string `orm:"size(512);column(photo)"description:""`
+	Company           string `orm:"size(512);column(company)"description:""`
+	City              string `orm:"size(512);column(city)"description:""`
+	Email             string `orm:"size(512);column(email)"description:""`
+	CreateTime        string `orm:"size(32);column(create_time);"description:"创建时间"`
+	UpdateTime        string `orm:"size(32);column(update_time);null"description:"更新时间"`
+	DeleteTime        string `orm:"size(32);column(delete_time);null"description:"删除时间"`
 }
 
 type AuthTokenInfo struct {

@@ -170,10 +170,9 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 	data, baseErr := base64.StdEncoding.DecodeString(rcp.ResourceContent)
 	if baseErr == nil {
 		strContent := common.DesString(string(data))
-		// fmt.Println("----------------GetResConfig 解密后:", string(strContent))
 		f.Write(strContent)
 	} else {
-		logs.Error("+++++++++++++++++", baseErr)
+		logs.Error(baseErr)
 		return resConfig, baseErr
 	}
 	resConfig, err = clientcmd.BuildConfigFromFlags("", filePath)
@@ -324,8 +323,6 @@ func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr *InitTmplRe
 	} else {
 		InitReqTmplPrarse(&rtp, rr, cr, itr)
 	}
-	logs.Error(queryFlag, "----------------: ", cr)
-
 	var templates *template.Template
 	var allFiles []string
 	files, dirErr := ioutil.ReadDir(yamlDir)
@@ -408,14 +405,13 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	spec := make(map[interface{}]interface{}, 0)
 	decErr := ymV2.Unmarshal(yamlData, &yamlValue)
 	if decErr != nil {
-		logs.Error("-------------:yamlData:", string(yamlData))
 		logs.Error("decErr: ", decErr)
 		return yamlData
 	}
 	logs.Info("yamlValue: ", yamlValue)
 	if len(yamlValue) > 0 {
 		resMap := make(map[interface{}]interface{})
-		resMap["userId"] = cr.UserId
+		resMap["userId"] = cr.LoginName
 		resMap["resourceName"] = cr.ResourceName
 		resMap["courseId"] = cr.CourseId
 		metadata, ok := yamlValue["metadata"]
@@ -514,7 +510,6 @@ func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) 
 		logs.Error("dynamic.NewForConfig, err: ", err)
 		return
 	}
-
 	if resourceMapper.Scope.Name() == meta.RESTScopeNameNamespace {
 		dr = dynamicClient.Resource(resourceMapper.Resource).Namespace(nameSpace)
 	} else {
@@ -720,19 +715,11 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 			continue
 		}
 		switch evName {
-		case "UNUSED_CREDENTIAL":
-			if len(itr.NamePassword) > 1 {
-				ev["value"] = itr.NamePassword
-			}
 		case "GOTTY_CREDENTIAL":
 			if len(itr.NamePassword) > 1 {
 				ev["value"] = itr.NamePassword
 			}
 		case "COMMUNITY_EMAIL":
-			if len(itr.ContactEmail) > 1 {
-				ev["value"] = itr.ContactEmail
-			}
-		case "UNUSED_COMMUNITY_EMAIL":
 			if len(itr.ContactEmail) > 1 {
 				ev["value"] = itr.ContactEmail
 			}
@@ -896,22 +883,26 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	metadata, ok := ParsingMap(items.Object, "metadata")
 	if !ok {
 		logs.Error("metadata, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	name, ok := ParsingMapStr(metadata, "name")
 	if !ok || len(name) < 1 {
 		logs.Error("name, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	itr := InitTmplResource{Name: name}
 	annotations, ok := ParsingMap(metadata, "annotations")
 	if !ok {
 		logs.Error("annotations, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	courseId, ok := ParsingMapStr(annotations, "courseId")
 	if !ok || len(courseId) < 1 {
 		logs.Error("courseId, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	if len(crs.CourseId) < 1 {
@@ -920,6 +911,8 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	resourceName, ok := ParsingMapStr(annotations, "resourceName")
 	if !ok || len(resourceName) < 1 {
 		logs.Error("resourceName, does not exist")
+		time.Sleep(time.Second * 10)
+		return false
 	}
 	resType := ""
 	rtr := models.ResourceTempathRel{CourseId: crs.CourseId}
@@ -931,21 +924,27 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		}
 	}
 	if courseId != crs.CourseId {
+		logs.Error("-----course id 不同, courseId :%v, crs.CourseId:%v ", courseId, crs.CourseId)
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	if len(resType) > 0 && len(resourceName) > 0 {
 		if resType != resourceName {
+			logs.Error("-----resourceName 不同, resType :%v,resourceName:%v ", resType, resourceName)
+			time.Sleep(time.Second * 10)
 			return false
 		}
 	}
 	spec, ok := ParsingMap(items.Object, "spec")
 	if !ok {
 		logs.Error("spec, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	subdomain, ok := ParsingMapStr(spec, "subdomain")
 	if !ok {
 		logs.Error("subdomain, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	itr.Subdomain = subdomain
@@ -953,6 +952,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	envs, ok := ParsingMapSlice(spec, "envs")
 	if !ok {
 		logs.Error("envs, does not exist")
+		time.Sleep(time.Second * 10)
 		return false
 	}
 	for _, ev := range envs {
@@ -979,15 +979,16 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		courseData := make(chan InitTmplResource, crs.ResPoolSize)
 		courseData <- itr
 		CoursePoolVar.Set(courseId, courseData)
-		logs.Info("courseId: ", courseId, "----------1--------len(courseData)=", len(courseData))
+		logs.Info("courseId: ", courseId, "len(courseData)=", len(courseData))
 	} else {
 		if len(courseChan) >= crs.ResPoolSize {
 			logs.Error("delete data, itr:", itr)
+			time.Sleep(time.Second * 10)
 			return false
 		}
 		courseChan <- itr
 		CoursePoolVar.Set(courseId, courseChan)
-		logs.Info("courseId: ", courseId, "----------2--------len(courseChan)=", len(courseChan))
+		logs.Info("courseId: ", courseId, "len(courseChan)=", len(courseChan))
 	}
 	return true
 }
@@ -1034,7 +1035,6 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
-
 	}
 	rls = GetResInfo(objGetData, dr, config, obj, true)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
@@ -1133,19 +1133,13 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 				if err != nil {
 					logs.Error("failed to get GVK, err: ", err)
-					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-					if err != nil {
-						time.Sleep(time.Minute * 10)
-					}
+					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 				dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 				if err != nil {
 					logs.Error("failed to get dr: ", err)
-					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-					if err != nil {
-						time.Sleep(time.Minute * 10)
-					}
+					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 				// store db
@@ -1153,43 +1147,30 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				err = ymV2.Unmarshal(yamlData, config)
 				if err != nil {
 					logs.Error("yaml1.Unmarshal, err: ", err)
-					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-					if err != nil {
-						time.Sleep(time.Minute * 10)
-					}
+					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 				objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 				if err != nil {
 					logs.Error("ApplyPoolInstance, dr.Get, err: ", err)
-					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-					if err != nil {
-						time.Sleep(time.Minute * 10)
-					}
+					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					continue
 				} else {
-
 					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
 					if err != nil {
 						logs.Error("UpdateRes err: ", err)
-						err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-						if err != nil {
-							time.Sleep(time.Minute * 10)
-						}
+						AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 						continue
 					}
-					err = AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
-					if err != nil {
-						time.Sleep(time.Minute * 10)
-					}
+					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 			}
 		} else {
-			return errors.New("Instance creation failed 1.courseID :" + rr.CourseId)
+			return errors.New("Instance creation failed")
 		}
 	} else {
-		return errors.New("Instance creation failed 2.courseID :" + rr.CourseId)
+		return errors.New("Instance creation failed")
 	}
 	return nil
 }
@@ -1218,7 +1199,6 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(yamlData, config)
-	fmt.Println("------------CreateInstance  yaml:------- ", string(yamlData))
 	if err != nil {
 		logs.Error("yaml1.Unmarshal, err: ", err)
 		return err
@@ -1228,7 +1208,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 		logs.Notice("Get an instance from the prepared instance, err: ", err)
 		err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 		if err != nil {
-			logs.Error("ApplyPoolInstance,0 err: ", err)
+			logs.Error("ApplyPoolInstance, err: ", err)
 			return err
 		}
 	} else {
@@ -1243,7 +1223,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			rr.ForceDelete = 1
 			err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 			if err != nil {
-				logs.Error("ApplyPoolInstance,1 err: ", err)
+				logs.Error("ApplyPoolInstance, err: ", err)
 				return err
 			}
 		} else {
@@ -1251,7 +1231,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			if err != nil {
 				err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 				if err != nil {
-					logs.Error("ApplyPoolInstance,2 err: ", err)
+					logs.Error("ApplyPoolInstance, err: ", err)
 					return err
 				}
 			}
@@ -1272,14 +1252,10 @@ func CreateEnvResource(rr ReqResource, rri *ResResourceInfo) {
 	}
 	itr := InitTmplResource{}
 	cr := CourseResources{CourseId: rr.CourseId, ChapterId: rr.ChapterId}
-
-	logs.Error("=================CreateEnvResource====", rr)
-	// rr.EnvResource = ResName(rr.EnvResource)
 	yamlData := ParseTmpl(yamlDir, rr, localPath, &itr, &cr, true)
 	createErr := CreateInstance(rri, rr, yamlDir, localPath, yamlData, &cr, &itr)
 	if createErr != nil {
-		logs.Error("CreateInstance createErr: ", createErr)
-		logs.Error("CreateInstance yamlData: ", string(yamlData))
+		logs.Error("createErr: ", createErr)
 		return
 	}
 }

@@ -2,10 +2,9 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
-
-	"github.com/astaxie/beego/config"
 	"github.com/astaxie/beego/logs"
+	"fmt"
+	"github.com/astaxie/beego/config"
 )
 
 func InitLogger() (err error) {
@@ -22,11 +21,6 @@ func InitLogger() (err error) {
 	logConf := make(map[string]interface{})
 	logConf["filename"] = BConfig.String("log::log_path")
 	level, _ := BConfig.Int("log::log_level")
-	// if beego.BConfig.RunMode == beego.DEV {
-	// 	logs.SetLevel(logs.LevelInfo)
-	// } else {
-	// 	logs.SetLevel(logs.LevelError)
-	// }
 	logConf["level"] = level
 	logConf["maxlines"] = maxlines
 
@@ -40,7 +34,6 @@ func InitLogger() (err error) {
 		fmt.Println("marshal failed,err:", err)
 		return
 	}
-
 	logs.SetLogFuncCall(true)
 	return
 }
@@ -50,5 +43,5 @@ func LogInit() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("log init success ! ... ")
+	fmt.Println("log init success !")
 }

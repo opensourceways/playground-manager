@@ -2,11 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"playground_backend/handler"
-	"playground_backend/models"
-
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	"playground_backend/handler"
+	"playground_backend/models"
 )
 
 type CourseChapterControllers struct {
@@ -56,7 +55,7 @@ func (u *CourseChapterControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: crp.CourseId}
 		ccp := models.CoursesChapter{CourseId: crp.CourseId, ChapterId: ""}
-		handler.WriteCourseData(crp.UserId, "0", crp.CourseId, "",
+		handler.WriteCourseData(crp.UserId, crp.CourseId, "",
 			"User bound course", "", "failed",
 			"Please check whether the request parameters are correct",
 			crp.Status, crp.Status, &crd, &ccp)
@@ -68,7 +67,7 @@ func (u *CourseChapterControllers) Post() {
 		u.RetData(resData)
 		crd := models.Courses{CourseId: crp.CourseId}
 		ccp := models.CoursesChapter{CourseId: crp.CourseId, ChapterId: ""}
-		handler.WriteCourseData(crp.UserId, "0", crp.CourseId, "",
+		handler.WriteCourseData(crp.UserId, crp.CourseId, "",
 			"User bound course", "", "failed",
 			"Unauthorized authentication information",
 			crp.Status, crp.Status, &crd, &ccp)
@@ -82,7 +81,7 @@ func (u *CourseChapterControllers) Post() {
 			u.RetData(resData)
 			crd := models.Courses{CourseId: crp.CourseId}
 			ccp := models.CoursesChapter{CourseId: crp.CourseId, ChapterId: ""}
-			handler.WriteCourseData(crp.UserId, "0", crp.CourseId, "", "User bound course",
+			handler.WriteCourseData(crp.UserId, crp.CourseId, "", "User bound course",
 				"", "failed", "Authority authentication failed",
 				crp.Status, crp.Status, &crd, &ccp)
 			return
@@ -151,7 +150,7 @@ func (u *CourseChapterControllers) Get() {
 		u.RetDetailData(resData)
 		crd := models.Courses{}
 		ccp := models.CoursesChapter{}
-		handler.WriteCourseData(userId, "0", "", "", "Query user's courses",
+		handler.WriteCourseData(userId, "", "", "Query user's courses",
 			"", "failed", "Unauthorized authentication information",
 			1, 1, &crd, &ccp)
 		return
@@ -164,7 +163,7 @@ func (u *CourseChapterControllers) Get() {
 			u.RetDetailData(resData)
 			crd := models.Courses{}
 			ccp := models.CoursesChapter{}
-			handler.WriteCourseData(userId, "0", "", "", "Query user's courses",
+			handler.WriteCourseData(userId, "", "", "Query user's courses",
 				"", "failed", "Authority authentication failed",
 				1, 1, &crd, &ccp)
 			return

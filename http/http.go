@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"net/http"
 	"playground_backend/common"
 	"strconv"
-
-	"github.com/astaxie/beego/logs"
 )
 
 //HTTPPost post request
@@ -53,7 +52,6 @@ func HTTPPost(url string, requestBody string) (map[string]interface{}, error) {
 
 //HTTPGitGet get request
 func HTTPGitGet(url string) (col map[string]interface{}, err error) {
-
 	resp, err := http.Get(url)
 	if err != nil {
 		logs.Error("HTTPGitGet, error: ", err)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -116,7 +115,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 }
 
 func PoolParseTmpl(yamlDir string, rd *ResourceData, localPath string) []byte {
-	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.sh")
+	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
 	rtp := InitTmplResource{ContactEmail: contactEmail}
 	cr := CourseResources{}
 	InitPoolTmplPrarse(&rtp, rd, &cr)
@@ -191,7 +190,6 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
-		logs.Error("---------yamlData:----", string(yamlData))
 		logs.Error("failed to get GVK, err: ", err)
 		return err
 	}
@@ -219,13 +217,16 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("Create err: ", err)
 		return err
 	}
+	logs.Info(" -------------暂停10秒 ")
+
+	time.Sleep(time.Second * 10)
+
 	rls := GetResInfo(objCreate, dr, config, obj, false)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		logs.Info("Resource created successfully, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	} else {
 		logs.Info("Resource is being created, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	}
-
 	return nil
 }
 
@@ -253,7 +254,6 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	if !ok {
 		resCh := make(chan InitTmplResource, rt.ResPoolSize)
 		//CoursePoolVar.CourseMap[rt.CourseId] = resCh
-		logs.Error("QueryResourceList 0000000000000000000000000, rt: ", rt)
 		CoursePoolVar.Set(rt.CourseId, resCh)
 	} else {
 		if len(initRes) >= rt.ResPoolSize {
@@ -294,37 +294,33 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	return nil
 }
 
-func CreatePoolResource(rd *ResourceData) error {
+func CreatePoolResource(rd *ResourceData) {
 	yamlDir := beego.AppConfig.DefaultString("template::local_dir", "template")
 	downLock.Lock()
 	downErr, localPath := DownLoadTemplate(yamlDir, rd.EnvResource)
 	downLock.Unlock()
 	if downErr != nil {
 		logs.Error("File download failed, path: ", rd.EnvResource)
-		time.Sleep(time.Second * 1)
-		return downErr
+		return
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)
-	fmt.Println("--------------------------------CreatePoolResource:content:", string(content))
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
-		logs.Error("createErr: -----------------", createErr)
-		time.Sleep(time.Minute * 20)
-		return createErr
+		logs.Error("createErr: ", createErr)
+		return
 	}
-	return nil
 }
 
-func AddResPool(courseId, resourceId, envResource string) error {
+func AddResPool(courseId, resourceId, envResource string) {
 	rtr := models.ResourceTempathRel{CourseId: courseId, ResourceId: resourceId, ResourcePath: envResource}
 	queryErr := models.QueryResourceTempathRel(&rtr, "CourseId", "ResourceId", "ResourcePath")
 	if queryErr != nil {
 		logs.Error("queryErr: ", queryErr)
-		return queryErr
+		return
 	}
 	rd := ResourceData{ResourceId: resourceId, EnvResource: envResource,
 		CourseId: courseId, ResPoolSize: rtr.ResPoolSize}
-	return CreatePoolResource(&rd)
+	CreatePoolResource(&rd)
 }
 
 func InitalResPool(rtr []models.ResourceTempathRel) {
@@ -336,38 +332,24 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		queryErr := QueryResourceList(rt)
 		if queryErr != nil {
 			logs.Error("QueryResourceList, queryErr: ", queryErr)
-			time.Sleep(time.Minute)
 		}
 		rd := ResourceData{ResourceId: rt.ResourceId,
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
-		fmt.Println(cap(coursePool), ok, "===========1===== CoursePoolVar.Get=====================")
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
-			logs.Error("InitalResPool ,---------------------- rt: ", rt)
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
 			CoursePoolVar.Set(rt.CourseId, resCh)
 			for i := 0; i < rt.ResPoolSize; i++ {
-				err := CreatePoolResource(&rd)
-				if err != nil {
-					logs.Error("CreatePoolResource ,-------------- rt: ", err)
-					time.Sleep(time.Second)
-				}
+				CreatePoolResource(&rd)
 			}
 		} else {
 			for {
 				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
-				fmt.Println(len(coursePool), "=========2======= CoursePoolVar.Get=====================", rt.ResPoolSize)
 				if len(coursePool) < rt.ResPoolSize {
-					err := CreatePoolResource(&rd)
-					if err != nil {
-						logs.Error("CreatePoolResource ,-------------------- rt: ", err)
-						time.Sleep(time.Second)
-					}
+					CreatePoolResource(&rd)
 				} else {
-					fmt.Println(len(coursePool), "=========3======:c===", rt.ResPoolSize)
-					time.Sleep(time.Second)
 					break
 				}
 			}
@@ -394,10 +376,8 @@ func InitialResourcePool() {
 		return
 	}
 	// 3. Query for available resources
-	fmt.Println("----------------InitalResPool------")
 	InitalResPool(rtr)
 	// 4. Print resource pool data
-	fmt.Println("---1-------------PrintResPool------")
 	PrintResPool()
 }
 
@@ -408,7 +388,6 @@ func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
 		if !ok || cap(coursePool) == 0 {
 			// 1. Resource does not exist, create resource
-			logs.Error("ApplyCoursePool 1,22222222222222222222 rt: ", rt)
 			resCh := make(chan InitTmplResource, rt.ResPoolSize)
 			CoursePoolVar.Set(rt.CourseId, resCh)
 			for i := 0; i < rt.ResPoolSize; i++ {
@@ -425,7 +404,6 @@ func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 					}
 				} else {
 					resCh := make(chan InitTmplResource, rt.ResPoolSize)
-					logs.Error("ApplyCoursePool 2,3333333333333333333333333333 rt: ", rt)
 					CoursePoolVar.Set(rt.CourseId, resCh)
 					for i := 0; i < rt.ResPoolSize; i++ {
 						CreatePoolResource(&rd)
