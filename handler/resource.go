@@ -280,6 +280,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	rtp.Name = resAlias
 	subDomain := itr.Subdomain
 	namePassword := itr.NamePassword
+	fmt.Println("================================= NamePassword:", itr.NamePassword)
+
 	nameList := strings.Split(namePassword, ":")
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
