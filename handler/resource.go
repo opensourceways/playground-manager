@@ -411,7 +411,7 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	logs.Info("yamlValue: ", yamlValue)
 	if len(yamlValue) > 0 {
 		resMap := make(map[interface{}]interface{})
-		resMap["userId"] = cr.LoginName
+		resMap["userId"] = cr.UserId
 		resMap["resourceName"] = cr.ResourceName
 		resMap["courseId"] = cr.CourseId
 		metadata, ok := yamlValue["metadata"]
@@ -715,6 +715,15 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 			continue
 		}
 		switch evName {
+		case "UNUSED_CREDENTIAL":
+			if len(itr.NamePassword) > 1 {
+				ev["value"] = itr.NamePassword
+			}
+
+		case "UNUSED_COMMUNITY_EMAIL":
+			if len(itr.ContactEmail) > 1 {
+				ev["value"] = itr.ContactEmail
+			}
 		case "GOTTY_CREDENTIAL":
 			if len(itr.NamePassword) > 1 {
 				ev["value"] = itr.NamePassword

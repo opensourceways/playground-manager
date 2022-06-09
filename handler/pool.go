@@ -115,7 +115,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 }
 
 func PoolParseTmpl(yamlDir string, rd *ResourceData, localPath string) []byte {
-	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
+	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.sh")
 	rtp := InitTmplResource{ContactEmail: contactEmail}
 	cr := CourseResources{}
 	InitPoolTmplPrarse(&rtp, rd, &cr)

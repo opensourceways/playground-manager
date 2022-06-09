@@ -1,9 +1,18 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 )
+
+func QueryUserSubdomains(userid int) (result []string, total int64, err error) {
+	o := orm.NewOrm()
+	sql := fmt.Sprintf("SELECT sub_domain FROM playground_backend.pg_resource_info where user_id =%d  ", userid)
+	total, err = o.Raw(sql).QueryRows(&result)
+	return
+}
 
 func QueryResourceInfo(eoi *ResourceInfo, field ...string) error {
 	o := orm.NewOrm()
