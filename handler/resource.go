@@ -578,7 +578,7 @@ func RecIter(rls *ResListStatus, objGetData *unstructured.Unstructured,
 	}
 	status, ok := ParsingMap(objGetData.Object, "status")
 	if !ok {
-		logs.Error("status does not exist, ", status)
+		logs.Error(objGetData.Object, "status does not exist, ", status)
 		return
 	}
 	conditions, ok := ParsingMapSlice(status, "conditions")
