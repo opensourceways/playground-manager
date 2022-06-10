@@ -1,17 +1,20 @@
 package main
 
 import (
-	"github.com/astaxie/beego"
 	"playground_backend/common"
+	"playground_backend/controllers"
+	"playground_backend/handler"
 	"playground_backend/models"
 	_ "playground_backend/routers"
+	"playground_backend/task"
+
+	"github.com/astaxie/beego"
 )
 
 func init() {
 	// Initialization log
 	common.LogInit()
 }
-
 
 func main() {
 	// init db
@@ -20,7 +23,19 @@ func main() {
 		println("error: Database initialization failed")
 		return
 	}
-	//common.ReadFileToEntry()
+	// 1. Initialize memory resources
+	handler.NewCoursePool(0)
+	go handler.InitialResourcePool()
+	// Initialize a scheduled task
+	taskOk := task.InitTask()
+	if !taskOk {
+		println("error: Timing task initialization failed, the program ends")
+		task.StopTask()
+		return
+	}
+	// single run
+	task.StartTask()
+	defer task.StopTask()
+	beego.ErrorController(&controllers.ErrorController{})
 	beego.Run()
 }
-

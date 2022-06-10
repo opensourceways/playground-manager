@@ -9,10 +9,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/astaxie/beego/logs"
-	jwt "github.com/dgrijalva/jwt-go"
 	"math/rand"
 	"time"
+
+	"github.com/astaxie/beego/logs"
+	jwt "github.com/dgrijalva/jwt-go"
+)
+
+var (
+	JwtSecret string = "justtemp"
 )
 
 //PKCS7Padding PKCS7 padding mode
@@ -138,21 +143,19 @@ func GenPrivKey(lens int) string {
 }
 
 type Claims struct {
-	username string
-	password string
+	AccessToken string
+	Userid      string
 	jwt.StandardClaims
 }
 
-func setting(jwtkey []byte, username, password string) (string, error) {
+func setting(jwtkey []byte, userid, accesstk string) (string, error) {
 	expireTime := time.Now().Add(7 * 24 * time.Hour)
 	claims := &Claims{
-		username: username,
-		password: password,
+		AccessToken: accesstk,
+		Userid:      userid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(), //expire date
 			IssuedAt:  time.Now().Unix(),
-			Issuer:    "127.0.0.1",  // Signature issuer
-			Subject:   "user token", //Signature subject
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -165,11 +168,24 @@ func setting(jwtkey []byte, username, password string) (string, error) {
 }
 
 //GenToken Generate Token
-func GenToken(username, password string) (string, error) {
-	pKey := GenPrivKey(16)
-	var jwtkey = []byte(pKey)
-	tokens, err := setting(jwtkey, username, password)
-	return tokens, err
+func GenToken(userid, accesstk string) (string, error) {
+
+	// pKey := JwtSecret
+	// var jwtkey = []byte(pKey)
+	// tokens, err := setting(jwtkey, userid, accesstk)
+
+	inclaims := &Claims{
+		AccessToken: accesstk,
+		Userid:      userid,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 7).Unix(), //expire date
+			IssuedAt:  time.Now().Unix(),
+		},
+	}
+	inToken := jwt.New(jwt.SigningMethodHS256)
+	inToken.Claims = inclaims
+	tokenString, err := inToken.SignedString([]byte(JwtSecret))
+	return tokenString, err
 }
 
 //EncryptMd5 encrypt md5
