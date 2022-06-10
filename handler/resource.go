@@ -284,6 +284,7 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 
 	nameList := strings.Split(namePassword, ":")
 	if len(nameList) != 2 {
+		nameList = make([]string, 2)
 		nameList[0] = common.RandomString(32)
 		nameList[1] = common.RandomString(32)
 	}
