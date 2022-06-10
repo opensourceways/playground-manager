@@ -1036,14 +1036,14 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 				if (common.PraseTimeInt(common.GetCurTime()) -
 					common.PraseTimeInt(common.TimeTConverStr(rls.ServerReadyTime))) <= containerTimeout {
 					logs.Info("1.Environment is preparing...resName: ", objGetData.GetName())
-					time.Sleep(time.Second)
+					time.Sleep(time.Second * 5)
 				} else {
 					isDelete = true
 					break
 				}
 			} else {
 				logs.Info("2.Environment is preparing...resName: ", objGetData.GetName())
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 5)
 			}
 		}
 		if rls.ServerReadyFlag {
