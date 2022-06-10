@@ -1052,7 +1052,6 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
-		logs.Info("=============UpdateRes(=")
 		time.Sleep(time.Second * 5)
 	}
 	rls = GetResInfo(objGetData, dr, config, obj, true)
