@@ -285,8 +285,8 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	nameList := strings.Split(namePassword, ":")
 	if len(nameList) != 2 {
 		nameList = make([]string, 2)
-		nameList[0] = base64.StdEncoding.EncodeToString([]byte( common.RandomString(32))
-		nameList[1] = base64.StdEncoding.EncodeToString([]byte( common.RandomString(32))
+		nameList[0] = base64.StdEncoding.EncodeToString([]byte(common.RandomString(32)))
+		nameList[1] = base64.StdEncoding.EncodeToString([]byte(common.RandomString(32)))
 	}
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
