@@ -4,16 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	ymV2 "gopkg.in/yaml.v2"
 	"html/template"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/dynamic"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +15,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	ymV2 "gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/client-go/dynamic"
 )
 
 type ResourceData struct {
@@ -114,7 +115,7 @@ func InitPoolTmplPrarse(rtp *InitTmplResource, rd *ResourceData, cr *CourseResou
 }
 
 func PoolParseTmpl(yamlDir string, rd *ResourceData, localPath string) []byte {
-	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.io")
+	contactEmail := beego.AppConfig.DefaultString("template::contact_email", "contact@openeuler.sh")
 	rtp := InitTmplResource{ContactEmail: contactEmail}
 	cr := CourseResources{}
 	InitPoolTmplPrarse(&rtp, rd, &cr)
@@ -216,6 +217,10 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("Create err: ", err)
 		return err
 	}
+	logs.Info(" -------------暂停10秒 ")
+
+	time.Sleep(time.Second * 5)
+
 	rls := GetResInfo(objCreate, dr, config, obj, false)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		logs.Info("Resource created successfully, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)

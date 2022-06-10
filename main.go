@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/astaxie/beego"
 	"playground_backend/common"
 	"playground_backend/controllers"
 	"playground_backend/handler"
 	"playground_backend/models"
 	_ "playground_backend/routers"
 	"playground_backend/task"
+
+	"github.com/astaxie/beego"
 )
 
 func init() {
 	// Initialization log
 	common.LogInit()
 }
-
 
 func main() {
 	// init db
@@ -25,7 +25,7 @@ func main() {
 	}
 	// 1. Initialize memory resources
 	handler.NewCoursePool(0)
-	handler.InitialResourcePool()
+	go handler.InitialResourcePool()
 	// Initialize a scheduled task
 	taskOk := task.InitTask()
 	if !taskOk {
@@ -39,4 +39,3 @@ func main() {
 	beego.ErrorController(&controllers.ErrorController{})
 	beego.Run()
 }
-

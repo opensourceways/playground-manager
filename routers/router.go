@@ -1,8 +1,9 @@
 package routers
 
 import (
-	"github.com/astaxie/beego"
 	"playground_backend/controllers"
+
+	"github.com/astaxie/beego"
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 	beego.Router("/playground/user/information", &controllers.UserInfoControllers{})
 	// The user creates crd resources and returns the result of creating resources
 	beego.Router("/playground/crd/resource", &controllers.CrdResourceControllers{})
+	beego.Router("/playground/users/checkSubdomain", &controllers.CrdResourceControllers{}, "post:CheckSubdomain")
 	// Bind the course/chapter selected by the user
 	beego.Router("/playground/users/course/chapter", &controllers.CourseChapterControllers{})
 	// Health check interface

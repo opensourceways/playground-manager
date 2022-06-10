@@ -6,11 +6,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"playground_backend/common"
+	"playground_backend/models"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	ymV2 "gopkg.in/yaml.v2"
-	"html/template"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,19 +33,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"playground_backend/common"
-	"playground_backend/models"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 var downLock sync.Mutex
+
 //var resPoolLock sync.Mutex
 
 type ReqTmplParase struct {
@@ -278,7 +280,14 @@ func InitReqTmplPrarse(rtp *ReqTmplParase, rr ReqResource, cr *CourseResources, 
 	rtp.Name = resAlias
 	subDomain := itr.Subdomain
 	namePassword := itr.NamePassword
+	fmt.Println("================================= NamePassword:", itr.NamePassword)
+
 	nameList := strings.Split(namePassword, ":")
+	if len(nameList) != 2 {
+		nameList = make([]string, 2)
+		nameList[0] = base64.StdEncoding.EncodeToString([]byte(common.RandomString(32)))
+		nameList[1] = base64.StdEncoding.EncodeToString([]byte(common.RandomString(32)))
+	}
 	eoi := models.ResourceInfo{ResourceName: resName}
 	queryErr := models.QueryResourceInfo(&eoi, "ResourceName")
 	if eoi.Id > 0 {
@@ -381,7 +390,7 @@ func ParseTmpl(yamlDir string, rr ReqResource, localPath string, itr *InitTmplRe
 	if common.FileExists(tmpLocalPath) {
 		DeleteFile(tmpLocalPath)
 	}
-	UnstructuredYaml(content)
+	// UnstructuredYaml(content)
 	return content
 }
 
@@ -404,12 +413,13 @@ func AddAnnotations(yamlData []byte, cr *CourseResources) []byte {
 	decErr := ymV2.Unmarshal(yamlData, &yamlValue)
 	if decErr != nil {
 		logs.Error("decErr: ", decErr)
+		logs.Error("--------yaml:", string(yamlData))
 		return yamlData
 	}
 	logs.Info("yamlValue: ", yamlValue)
 	if len(yamlValue) > 0 {
 		resMap := make(map[interface{}]interface{})
-		resMap["userId"] = cr.LoginName
+		resMap["userId"] = cr.UserId
 		resMap["resourceName"] = cr.ResourceName
 		resMap["courseId"] = cr.CourseId
 		metadata, ok := yamlValue["metadata"]
@@ -568,7 +578,7 @@ func RecIter(rls *ResListStatus, objGetData *unstructured.Unstructured,
 	}
 	status, ok := ParsingMap(objGetData.Object, "status")
 	if !ok {
-		logs.Error("status does not exist, ", status)
+		logs.Error(objGetData.Object, "status does not exist, ", status)
 		return
 	}
 	conditions, ok := ParsingMapSlice(status, "conditions")
@@ -713,6 +723,15 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 			continue
 		}
 		switch evName {
+		case "UNUSED_CREDENTIAL":
+			if len(itr.NamePassword) > 1 {
+				ev["value"] = itr.NamePassword
+			}
+
+		case "UNUSED_COMMUNITY_EMAIL":
+			if len(itr.ContactEmail) > 1 {
+				ev["value"] = itr.ContactEmail
+			}
 		case "GOTTY_CREDENTIAL":
 			if len(itr.NamePassword) > 1 {
 				ev["value"] = itr.NamePassword
@@ -881,22 +900,26 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	metadata, ok := ParsingMap(items.Object, "metadata")
 	if !ok {
 		logs.Error("metadata, does not exist")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	name, ok := ParsingMapStr(metadata, "name")
 	if !ok || len(name) < 1 {
-		logs.Error("name, does not exist")
+		logs.Error("name, does not exist----------------")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	itr := InitTmplResource{Name: name}
 	annotations, ok := ParsingMap(metadata, "annotations")
 	if !ok {
-		logs.Error("annotations, does not exist")
+		logs.Error("annotations, does not exist-------------")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	courseId, ok := ParsingMapStr(annotations, "courseId")
 	if !ok || len(courseId) < 1 {
-		logs.Error("courseId, does not exist")
+		logs.Error("courseId, does not exist-------------")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	if len(crs.CourseId) < 1 {
@@ -904,7 +927,9 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	}
 	resourceName, ok := ParsingMapStr(annotations, "resourceName")
 	if !ok || len(resourceName) < 1 {
-		logs.Error("resourceName, does not exist")
+		logs.Error("resourceName, does not exist-----------")
+		time.Sleep(time.Second * 5)
+		return false
 	}
 	resType := ""
 	rtr := models.ResourceTempathRel{CourseId: crs.CourseId}
@@ -916,21 +941,27 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 		}
 	}
 	if courseId != crs.CourseId {
+		logs.Error("-----course id not equal, courseId :%v, crs.CourseId:%v ", courseId, crs.CourseId)
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	if len(resType) > 0 && len(resourceName) > 0 {
 		if resType != resourceName {
+			logs.Error("-----resourceName not equal, resType :%v,resourceName:%v ", resType, resourceName)
+			time.Sleep(time.Second * 5)
 			return false
 		}
 	}
 	spec, ok := ParsingMap(items.Object, "spec")
 	if !ok {
 		logs.Error("spec, does not exist")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	subdomain, ok := ParsingMapStr(spec, "subdomain")
 	if !ok {
 		logs.Error("subdomain, does not exist")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	itr.Subdomain = subdomain
@@ -938,6 +969,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	envs, ok := ParsingMapSlice(spec, "envs")
 	if !ok {
 		logs.Error("envs, does not exist")
+		time.Sleep(time.Second * 5)
 		return false
 	}
 	for _, ev := range envs {
@@ -968,6 +1000,7 @@ func AddTmplResourceList(items unstructured.Unstructured, crs CourseRes) bool {
 	} else {
 		if len(courseChan) >= crs.ResPoolSize {
 			logs.Error("delete data, itr:", itr)
+			time.Sleep(time.Second * 5)
 			return false
 		}
 		courseChan <- itr
@@ -1003,14 +1036,14 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 				if (common.PraseTimeInt(common.GetCurTime()) -
 					common.PraseTimeInt(common.TimeTConverStr(rls.ServerReadyTime))) <= containerTimeout {
 					logs.Info("1.Environment is preparing...resName: ", objGetData.GetName())
-					time.Sleep(time.Second)
+					time.Sleep(time.Second * 5)
 				} else {
 					isDelete = true
 					break
 				}
 			} else {
 				logs.Info("2.Environment is preparing...resName: ", objGetData.GetName())
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 5)
 			}
 		}
 		if rls.ServerReadyFlag {
@@ -1019,6 +1052,7 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
 			break
 		}
+		time.Sleep(time.Second * 5)
 	}
 	rls = GetResInfo(objGetData, dr, config, obj, true)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {

@@ -2,10 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
+	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+	"strconv"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/dgrijalva/jwt-go"
 )
 
 type CrdResourceControllers struct {
@@ -221,5 +225,78 @@ func (u *CrdResourceControllers) Get() {
 			"success", "Query application resource success",
 			1, 1, &crd, &ccp)
 	}
+	return
+}
+
+type CheckSubdomain struct {
+	Token     string `json:"token"`
+	Subdomain string `json:"subdomain"`
+}
+
+// @Title Get CheckSubdomain
+// @Description 验证subdomain 和token
+// @Param	status	int	true (0,1,2)
+// @Success 200 {object} CheckPgweb
+// @Failure 403 :status is err
+// @router /playground/users/checkSubdomain [post]
+func (u *CrdResourceControllers) CheckSubdomain() {
+
+	var checkSubdomain CheckSubdomain
+	err := json.Unmarshal(u.Ctx.Input.RequestBody, &checkSubdomain)
+	if err != nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail": "body参数异常 ",
+			"error":  err,
+		}
+		u.ServeJSON()
+		return
+	}
+	if len(checkSubdomain.Subdomain) == 0 || len(checkSubdomain.Token) == 0 {
+		u.Data["json"] = map[string]interface{}{
+			"checkSubdomain": checkSubdomain,
+			"error":          "body参数异常",
+		}
+		u.ServeJSON()
+		return
+
+	}
+
+	resourceInfo := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
+	err = models.QueryResourceInfo(&resourceInfo, "Subdomain")
+	if err != nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail":    "查询Subdomain时候出错 ",
+			"Subdomain": checkSubdomain.Subdomain,
+			"error":     err,
+		}
+		u.ServeJSON()
+		return
+	}
+
+	var tokenUserID int
+	var claims common.Claims
+	tokenClaims, err := jwt.ParseWithClaims(checkSubdomain.Token, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(common.JwtSecret), nil
+	})
+	if tokenClaims == nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail": "token 异常 ",
+			"body":   checkSubdomain,
+			"error":  err,
+		}
+		u.ServeJSON()
+		return
+	}
+
+	if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
+		tokenUserID, _ = strconv.Atoi(claims.Userid)
+		if tokenUserID == int(resourceInfo.UserId) {
+			u.Data["json"] = "ok"
+			u.ServeJSON()
+			return
+		}
+	}
+	u.Data["json"] = resourceInfo
+	u.ServeJSON()
 	return
 }
