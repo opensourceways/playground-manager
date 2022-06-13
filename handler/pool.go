@@ -217,8 +217,6 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("Create err: ", err)
 		return err
 	}
-	logs.Info(" -------------暂停10秒 ")
-
 	time.Sleep(time.Second * 5)
 
 	rls := GetResInfo(objCreate, dr, config, obj, false)

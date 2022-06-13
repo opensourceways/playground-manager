@@ -2,14 +2,15 @@ package handler
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
-	"github.com/pkg/errors"
 	"os"
 	"playground_backend/common"
 	"playground_backend/http"
 	"playground_backend/models"
 	"strings"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -326,9 +327,12 @@ func ProcCourseAndResRel(courseId, courseDir, eulerBranch string) {
 
 func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, courseDir string) error {
 	rcpErr := errors.New("")
-	defTemplatePath := fmt.Sprintf("%v/%v_%v", DEFAULT, rcp.EulerBranch, CONTAINER)
+	originTemplatePath := fmt.Sprintf("%v", rcp.EulerBranch)
+	defTemplatePath := fmt.Sprintf("%v/%v", DEFAULT, rcp.EulerBranch)
+	defContainerTemplatePath := fmt.Sprintf("%v/%v_%v", DEFAULT, rcp.EulerBranch, CONTAINER)
 	customTemplatePath := fmt.Sprintf("%v/%v_%v_%v", CUSTOMIZATION, rcp.EulerBranch, courseDir, CONTAINER)
 	oldTemplatePath := fmt.Sprintf("%v/%v", rcp.EulerBranch, LXD)
+
 	rcp.ResourcePath = customTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
@@ -337,6 +341,25 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 		saveErr := SaveResourceTemplate(rr)
 		return saveErr
 	}
+
+	rcp.ResourcePath = oldTemplatePath
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	if rcp.Id > 0 {
+		rr.EnvResource = rcp.ResourcePath
+		rr.ResourceId = rcp.ResourceId
+		saveErr := SaveResourceTemplate(rr)
+		return saveErr
+	}
+
+	rcp.ResourcePath = defContainerTemplatePath
+	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
+	if rcp.Id > 0 {
+		rr.EnvResource = rcp.ResourcePath
+		rr.ResourceId = rcp.ResourceId
+		saveErr := SaveResourceTemplate(rr)
+		return saveErr
+	}
+
 	rcp.ResourcePath = defTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
@@ -345,7 +368,8 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 		saveErr := SaveResourceTemplate(rr)
 		return saveErr
 	}
-	rcp.ResourcePath = oldTemplatePath
+
+	rcp.ResourcePath = originTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
 		rr.EnvResource = rcp.ResourcePath
