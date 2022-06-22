@@ -2,14 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
-	"playground_backend/common"
+	"net/url"
 	"playground_backend/handler"
 	"playground_backend/models"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
-	"github.com/dgrijalva/jwt-go"
 )
 
 type CrdResourceControllers struct {
@@ -35,9 +35,9 @@ func (c *CrdResourceControllers) RetData(resp ResData) {
 }
 
 type ResData struct {
-	ResInfo handler.ResResourceInfo `json:"instanceInfo"`
-	Mesg    string                  `json:"message"`
-	Code    int                     `json:"code"`
+	ResInfo interface{} `json:"instanceInfo"`
+	Mesg    string      `json:"message"`
+	Code    int         `json:"code"`
 }
 
 // @Title CreateCrdResource
@@ -59,6 +59,7 @@ func (u *CrdResourceControllers) Post() {
 		resData.Mesg = "Parameter error"
 		logs.Error("Bind Course parameters: ", rp)
 		u.RetData(resData)
+		return
 	}
 	if (len(rp.TemplatePath) < 1 && len(rp.Backend) < 1) ||
 		rp.UserId < 1 || len(rp.CourseId) < 1 {
@@ -66,39 +67,43 @@ func (u *CrdResourceControllers) Post() {
 		resData.Mesg = "Please check whether the request parameters are correct"
 		logs.Error("created crd parameters: ", rp)
 		u.RetData(resData)
-		crd := models.Courses{CourseId: rp.CourseId}
-		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
-			"", "failed", "Please check whether the request parameters are correct",
-			1, 1, &crd, &ccp)
+		// crd := models.Courses{CourseId: rp.CourseId}
+		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+		// 	"", "failed", "Please check whether the request parameters are correct",
+		// 	1, 1, &crd, &ccp)
 		return
 	}
+	logs.Error("create resouce 1: ", len(rp.Token))
 	if len(rp.Token) < 1 {
 		resData.Code = 401
 		resData.Mesg = "Unauthorized authentication information"
 		u.RetData(resData)
-		crd := models.Courses{CourseId: rp.CourseId}
-		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
-			"Application Resources", "", "failed",
-			"Unauthorized authentication information",
-			1, 1, &crd, &ccp)
+		// crd := models.Courses{CourseId: rp.CourseId}
+		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+		// 	"Application Resources", "", "failed",
+		// 	"Unauthorized authentication information",
+		// 	1, 1, &crd, &ccp)
 		return
 	} else {
 		gui := models.AuthUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
 		ok := handler.CheckToken(&gui)
 		if !ok {
-			resData.Mesg = "Authority authentication failed"
+			resData.Mesg = "Authority authentication failed:" + rp.Token + "----userid:" + strconv.Itoa(int(rp.UserId))
 			resData.Code = 403
 			u.RetData(resData)
-			crd := models.Courses{CourseId: rp.CourseId}
-			ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-			handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
-				"", "filed", "Authority authentication failed",
-				1, 1, &crd, &ccp)
+
+			// crd := models.Courses{CourseId: rp.CourseId}
+			// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+			// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+			// 	"", "filed", "Authority authentication failed",
+			// 	1, 1, &crd, &ccp)
+
 			return
 		}
 	}
+
 	if rp.ForceDelete == 0 {
 		rp.ForceDelete = 1
 	}
@@ -112,30 +117,32 @@ func (u *CrdResourceControllers) Post() {
 	rri.ChapterId = rp.ChapterId
 	cs := models.Courses{CourseId: rp.CourseId}
 	queryErr := models.QueryCourse(&cs, "CourseId")
+	logs.Error("create resouce 2: ", queryErr)
 	if queryErr != nil {
-		logs.Error("queryErr: ", queryErr)
+		logs.Error("createResource queryErr: ", queryErr)
 		resData.Mesg = "Retry later while course info is syncing"
 		resData.Code = 404
 		u.RetData(resData)
-		crd := models.Courses{CourseId: rp.CourseId}
-		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
-			"", "filed", "Retry later while course info is syncing",
-			1, 1, &crd, &ccp)
+		// crd := models.Courses{CourseId: rp.CourseId}
+		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+		// 	"", "filed", "Retry later while course info is syncing",
+		// 	1, 1, &crd, &ccp)
 		return
 	}
 	rcpErr := rr.SaveCourseAndResRel(&rcp, cs.Name)
+	logs.Error("create resouce 3: ", rcpErr)
 	if rcpErr != nil {
 		resData.Code = 403
 		resData.Mesg = "The corresponding instance resource is not currently configured"
 		logs.Error("created crd parameters: ", rp)
 		u.RetData(resData)
-		crd := models.Courses{CourseId: rp.CourseId}
-		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
-			"Application Resources", "", "failed",
-			"The corresponding instance resource is not currently configured",
-			1, 1, &crd, &ccp)
+		// crd := models.Courses{CourseId: rp.CourseId}
+		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+		// 	"Application Resources", "", "failed",
+		// 	"The corresponding instance resource is not currently configured",
+		// 	1, 1, &crd, &ccp)
 		return
 	}
 	rp.TemplatePath = rcp.ResourcePath
@@ -143,7 +150,8 @@ func (u *CrdResourceControllers) Post() {
 	rp.Backend = rcp.EulerBranch
 	rr.EnvResource = rcp.ResourcePath
 	rr.ResourceId = rcp.ResourceId
-	handler.CreateEnvResource(rr, rri)
+	err := handler.CreateEnvResource(rr, rri)
+	logs.Error("create resouce 4: ", err)
 	if rri.UserId > 0 {
 		if rri.Status == 0 {
 			resData.Code = 202
@@ -160,7 +168,7 @@ func (u *CrdResourceControllers) Post() {
 		resData.ResInfo = *rri
 		resData.Mesg = "success"
 	} else {
-		resData.ResInfo = *rri
+		resData.ResInfo = err.Error()
 		resData.Code = 501
 		resData.Mesg = "Failed to create resource, need to request resource again"
 		crd := models.Courses{CourseId: rp.CourseId}
@@ -169,8 +177,9 @@ func (u *CrdResourceControllers) Post() {
 			"failed", "Failed to create resource, need to request resource again",
 			1, 1, &crd, &ccp)
 	}
+	logs.Error("create resouce 5: ")
 	u.RetData(resData)
-	return
+
 }
 
 // @Title Get GetCrdResource
@@ -246,7 +255,8 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 	if err != nil {
 		u.Data["json"] = map[string]interface{}{
 			"detail": "body参数异常 ",
-			"error":  err,
+			"error":  err.Error(),
+			"code":   500,
 		}
 		u.ServeJSON()
 		return
@@ -255,48 +265,74 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 		u.Data["json"] = map[string]interface{}{
 			"checkSubdomain": checkSubdomain,
 			"error":          "body参数异常",
+			"code":           500,
 		}
 		u.ServeJSON()
 		return
 
 	}
+	urlItem, err := url.Parse(checkSubdomain.Subdomain)
+	if err != nil {
+		u.Data["json"] = map[string]interface{}{
+			"detail": "Subdomain参数异常 ",
+			"error":  err.Error(),
+			"code":   500,
+		}
+		u.ServeJSON()
+		return
+	}
 
-	resourceInfo := models.ResourceInfo{Subdomain: checkSubdomain.Subdomain}
+	hostSplit := strings.Split(urlItem.Host, ".")
+	if len(hostSplit) < 2 {
+		u.Data["json"] = map[string]interface{}{
+			"detail": "Subdomain参数异常 ",
+			"host":   urlItem.Host,
+			"code":   500,
+		}
+		u.ServeJSON()
+		return
+	}
+
+	resourceInfo := models.ResourceInfo{Subdomain: hostSplit[0]}
 	err = models.QueryResourceInfo(&resourceInfo, "Subdomain")
 	if err != nil {
 		u.Data["json"] = map[string]interface{}{
 			"detail":    "查询Subdomain时候出错 ",
-			"Subdomain": checkSubdomain.Subdomain,
-			"error":     err,
+			"Subdomain": hostSplit[0],
+			"error":     err.Error(),
+			"code":      500,
 		}
 		u.ServeJSON()
 		return
 	}
 
-	var tokenUserID int
-	var claims common.Claims
-	tokenClaims, err := jwt.ParseWithClaims(checkSubdomain.Token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(common.JwtSecret), nil
-	})
-	if tokenClaims == nil {
+	authUseraInfo := models.AuthUserInfo{AccessToken: checkSubdomain.Token}
+	err = models.QueryAuthUserInfo(&authUseraInfo, "AccessToken")
+	if err != nil {
 		u.Data["json"] = map[string]interface{}{
-			"detail": "token 异常 ",
-			"body":   checkSubdomain,
-			"error":  err,
+			"detail":    "查询AccessToken时候出错 ",
+			"Subdomain": checkSubdomain.Token,
+			"error":     err.Error(),
+			"code":      500,
+		}
+		u.ServeJSON()
+		return
+	}
+	if int(authUseraInfo.UserId) != int(resourceInfo.UserId) {
+		u.Data["json"] = map[string]interface{}{
+			"detail": authUseraInfo.UserId,
+			"body":   " 不等",
+			"error":  resourceInfo.UserId,
+			"code":   500,
 		}
 		u.ServeJSON()
 		return
 	}
 
-	if claims, ok := tokenClaims.Claims.(*common.Claims); ok && tokenClaims.Valid {
-		tokenUserID, _ = strconv.Atoi(claims.Userid)
-		if tokenUserID == int(resourceInfo.UserId) {
-			u.Data["json"] = "ok"
-			u.ServeJSON()
-			return
-		}
+	u.Data["json"] = map[string]interface{}{
+		"code": 200,
+		"data": resourceInfo,
 	}
-	u.Data["json"] = resourceInfo
 	u.ServeJSON()
-	return
+
 }

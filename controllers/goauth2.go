@@ -7,11 +7,12 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type Oauth2CallBackLinksControllers struct {
@@ -163,6 +164,7 @@ type OauthInfoData struct {
 // @Failure 403 body is empty
 // @router / [post]
 func (u *Oauth2AuthenticationControllers) Post() {
+
 	var authToken handler.AuthToken
 	var oauthInfo OauthInfoData
 	var rip handler.ReqIdPrams

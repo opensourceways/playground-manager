@@ -209,6 +209,7 @@ func (ep EnvPrams) AddCourseToDb(cr interface{}) {
 	cor := cr.(map[string]interface{})
 	statusList := cor["status"].([]interface{})
 	onEnvList := strings.Split(ep.OnlineEnv, ",")
+	statusList = []interface{}{"online", "test"}
 	if len(statusList) > 0 && len(onEnvList) > 0 {
 		for _, st := range statusList {
 			status := st.(string)
@@ -254,7 +255,7 @@ func (ep EnvPrams) AddCourseToDb(cr interface{}) {
 						upErr := models.UpdateCourse(&cr, "Status", "Name",
 							"Title", "Description", "Icon", "Poster", "Banner",
 							"Estimated", "UpdateTime", "Flag")
-						if upErr != nil {
+						if upErr != nil && !strings.Contains(upErr.Error(), "no row found") {
 							logs.Error("AddCourseToDb, upErr: ", upErr)
 						}
 						cId = cr.Id
@@ -269,7 +270,7 @@ func (ep EnvPrams) AddCourseToDb(cr interface{}) {
 						cId = id
 					}
 					upChapterErr := models.UpdateCourseAllChapter(2, 2, cr.CourseId)
-					if upChapterErr != nil {
+					if upChapterErr != nil && !strings.Contains(upChapterErr.Error(), "no row found") {
 						logs.Error("AddCourseToDb, delChapterErr: ", upChapterErr)
 					}
 					chapterList := body["chapters"].([]interface{})
@@ -304,7 +305,7 @@ func (ep EnvPrams) AddCourseToDb(cr interface{}) {
 					}
 					if len(imageid) > 1 {
 						upErr := models.UpdateCourseByCId(courseId, imageid)
-						if upErr != nil {
+						if upErr != nil && !strings.Contains(upErr.Error(), "no row found") {
 							logs.Error("UpdateCourseByCId,upErr: ", upErr, courseId, imageid)
 						}
 						ProcCourseAndResRel(courseId, coursePathName, imageid)
@@ -490,14 +491,14 @@ func CleanUpCoursePool() {
 			// 1. Clear environment configuration
 			rtr := models.ResourceTempathRel{CourseId: cs.CourseId}
 			delErr := models.DeleteResourceTempathRel(&rtr, "CourseId")
-			if delErr != nil {
+			if delErr != nil && !strings.Contains(delErr.Error(), "no row found") {
 				logs.Error("delErr: ", delErr)
 			}
 			// 2. Clear User Courses
 			upErr := models.UpdateUserCourseByCourseId(2, cs.CourseId)
 			if upErr == nil {
 				upErr = models.UpdateUserCourseChapterByCourseId(2, cs.CourseId)
-				if upErr != nil {
+				if upErr != nil && !strings.Contains(upErr.Error(), "no row found") {
 					logs.Error("upErr: ", upErr)
 				}
 			}
@@ -508,7 +509,7 @@ func CleanUpCoursePool() {
 	if len(chapterData) > 0 {
 		for _, cd := range chapterData {
 			upErr := models.UpdateUserCourseChapterByChapterId(2, cd.CourseId, cd.ChapterId)
-			if upErr != nil {
+			if upErr != nil && !strings.Contains(upErr.Error(), "no row found") {
 				logs.Error("upErr: ", upErr)
 			}
 		}

@@ -4,6 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"playground_backend/common"
+	"playground_backend/models"
+	"strconv"
+	"time"
+
 	"github.com/Authing/authing-go-sdk/lib/authentication"
 	"github.com/Authing/authing-go-sdk/lib/constant"
 	"github.com/Authing/authing-go-sdk/lib/management"
@@ -12,9 +17,6 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/bitly/go-simplejson"
 	"github.com/pkg/errors"
-	"playground_backend/common"
-	"playground_backend/models"
-	"time"
 )
 
 const (
@@ -862,6 +864,7 @@ func SaveAuthUserInfo(authCode AuthCode, rui *RespUserInfo, gui *GiteeUserInfo) 
 			return userErr
 		}
 		if len(gui.SubUid) > 0 {
+
 			// 5. Store user information
 			saveErr := SaveAuthUser(rui, gtk, gui, authToken)
 			if saveErr != nil {
@@ -984,7 +987,8 @@ func GetAuthUserFromDb(gtk GiteeTokenInfo, rui *RespUserInfo, guu *GiteeUserInfo
 }
 
 func SaveAuthUser(rui *RespUserInfo, gtk GiteeTokenInfo, gui *GiteeUserInfo, authToken AuthToken) error {
-	token, terr := common.GenToken(gui.SubUid, gtk.AccessToken)
+	fmt.Println("---------------", rui.UserId)
+	token, terr := common.GenToken(strconv.Itoa(int(rui.UserId)), gtk.AccessToken)
 	if terr == nil {
 		userId := ProcOauthData(gtk, gui, token, authToken)
 		gui.UserId = userId

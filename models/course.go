@@ -2,10 +2,12 @@ package models
 
 import (
 	"fmt"
+	"playground_backend/common"
+	"strings"
+
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 	"github.com/pkg/errors"
-	"playground_backend/common"
 )
 
 func QueryAllCourseData(status int) (cs []Courses) {
@@ -18,9 +20,10 @@ func QueryAllCourseData(status int) (cs []Courses) {
 		num, err = o.Raw("SELECT * FROM pg_courses").QueryRows(&cs)
 	}
 
-	if err == nil && num > 0 {
+	if num > 0 {
 		logs.Info("QueryUserCourseData, search num: ", num)
-	} else {
+	}
+	if err != nil {
 		logs.Error("QueryUserCourseData, cur_time:",
 			common.GetCurTime(), ",err: ", err)
 	}
@@ -121,7 +124,9 @@ func UpdateCourseAllChapter(status, flag int8, courseId string) error {
 	}
 	err := o.Raw("update pg_courses_chapter set status = ?,delete_time = ? where course_id = ?",
 		status, deletTime, courseId).QueryRow()
-	logs.Info("UpdateCourseAllChapter", err)
+	if err != nil && !strings.Contains(err.Error(), "no row found") {
+		logs.Info("UpdateCourseAllChapter err:", err)
+	}
 	return err
 }
 
@@ -219,9 +224,10 @@ func QueryUserCourseData(currentPage, pageSize int, UserId int64) (uc []UserCour
 	o := orm.NewOrm()
 	num, err := o.Raw("SELECT * FROM pg_user_course where user_id = ? order by id desc limit ? offset ?",
 		UserId, pageSize, startSize).QueryRows(&uc)
-	if err == nil && num > 0 {
+	if num > 0 {
 		logs.Info("QueryUserCourseData, search num: ", num)
-	} else {
+	}
+	if err != nil {
 		logs.Info("QueryUserCourseData, cur_time:",
 			common.GetCurTime(), ",err: ", err)
 	}
@@ -233,9 +239,10 @@ func QueryChapterByCourseId(courseId string, UserId int64) (ucp []UserCourseChap
 	num, err := o.Raw("SELECT * FROM pg_user_course_chapter where "+
 		"user_id = ? and course_id = ? order by id asc",
 		UserId, courseId).QueryRows(&ucp)
-	if err == nil && num > 0 {
+	if num > 0 {
 		logs.Info("QueryChapterByCourseId, search num: ", num)
-	} else {
+	}
+	if err != nil {
 		logs.Info("QueryChapterByCourseId, cur_time:",
 			common.GetCurTime(), ",err: ", err)
 	}

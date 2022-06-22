@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"playground_backend/handler"
 	"playground_backend/models"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type CourseChapterControllers struct {

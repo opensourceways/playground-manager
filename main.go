@@ -25,7 +25,7 @@ func main() {
 	}
 	// 1. Initialize memory resources
 	handler.NewCoursePool(0)
-	go handler.InitialResourcePool()
+	handler.InitialResourcePool()
 	// Initialize a scheduled task
 	taskOk := task.InitTask()
 	if !taskOk {
@@ -37,5 +37,6 @@ func main() {
 	task.StartTask()
 	defer task.StopTask()
 	beego.ErrorController(&controllers.ErrorController{})
+
 	beego.Run()
 }

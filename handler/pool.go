@@ -47,23 +47,23 @@ var PoolSync sync.RWMutex
 
 type CoursePool struct {
 	InitialFlag bool
-	CourseMap   map[string]chan InitTmplResource
+	CourseMap   map[string]chan *InitTmplResource
 }
 
 func NewCoursePool(n int) {
 	CoursePoolVar = CoursePool{
-		CourseMap:   make(map[string]chan InitTmplResource, n),
+		CourseMap:   make(map[string]chan *InitTmplResource, n),
 		InitialFlag: false,
 	}
 }
-func (c *CoursePool) Get(key string) (chan InitTmplResource, bool) {
+func (c *CoursePool) Get(key string) (chan *InitTmplResource, bool) {
 	PoolSync.RLock()
 	defer PoolSync.RUnlock()
 	v, existed := c.CourseMap[key]
 	return v, existed
 }
 
-func (c *CoursePool) Set(key string, v chan InitTmplResource) {
+func (c *CoursePool) Set(key string, v chan *InitTmplResource) {
 	PoolSync.Lock()
 	defer PoolSync.Unlock()
 	c.CourseMap[key] = v
@@ -205,21 +205,30 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("yaml1.Unmarshal, err: ", err)
 		return err
 	}
+
 	coursePool, _ := CoursePoolVar.Get(rd.CourseId)
+	if coursePool == nil {
+		if rd.ResPoolSize == 0 {
+			rd.ResPoolSize = 10
+		}
+		coursePool = make(chan *InitTmplResource, rd.ResPoolSize)
+		CoursePoolVar.Set(rd.CourseId, coursePool)
+	}
 	if len(coursePool) >= rd.ResPoolSize {
-		logs.Info("The current resources are sufficient and there is "+
-			"no need to create new resources, len(coursePool): ", len(coursePool), ",CourseId: ", rd.CourseId)
+		logs.Info("lots of resource ------------------ ", len(coursePool), ",CourseId: ", rd.CourseId)
 		return errors.New("too many resources")
 	}
 	logs.Info("To start creating a resource, the resource name:", obj.GetName(), ",len(coursePool) = ", len(coursePool))
 	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
-		logs.Error("Create err: ", err)
+		logs.Error("Create resource err: ", err)
 		return err
 	}
-	time.Sleep(time.Second * 5)
+	itr := new(InitTmplResource)
+	itr.Name = obj.GetName()
+	coursePool <- itr
 
-	rls := GetResInfo(objCreate, dr, config, obj, false)
+	rls := GetResInfo(objCreate, dr, config, obj, false, itr)
 	if rls.ServerReadyFlag && !rls.ServerRecycledFlag {
 		logs.Info("Resource created successfully, resourceName: ", obj.GetName(), ", InstanceEndpoint: ", rls.InstanceEndpoint)
 	} else {
@@ -234,7 +243,7 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	downErr, localPath := DownLoadTemplate(yamlDir, rt.ResourcePath)
 	downLock.Unlock()
 	if downErr != nil {
-		logs.Error("File download failed, path: ", rt.ResourcePath)
+		logs.Error("QueryResourceList File download failed, path: ", rt.ResourcePath)
 		return downErr
 	}
 	crs := CourseRes{CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
@@ -248,14 +257,17 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 		dr      dynamic.ResourceInterface
 	)
 	//initRes, ok := CoursePoolVar.CourseMap[rt.CourseId]
-	initRes, ok := CoursePoolVar.Get(rt.CourseId)
-	if !ok {
-		resCh := make(chan InitTmplResource, rt.ResPoolSize)
+	initRes, _ := CoursePoolVar.Get(rt.CourseId)
+	if initRes == nil {
+		if rd.ResPoolSize == 0 {
+			rd.ResPoolSize = 10
+		}
+		initRes = make(chan *InitTmplResource, rt.ResPoolSize)
 		//CoursePoolVar.CourseMap[rt.CourseId] = resCh
-		CoursePoolVar.Set(rt.CourseId, resCh)
+		CoursePoolVar.Set(rt.CourseId, initRes)
 	} else {
 		if len(initRes) >= rt.ResPoolSize {
-			logs.Info("CourseId: ", rt.CourseId, ", loading finished: ", initRes)
+			logs.Info("QueryResourceList CourseId: ", rt.CourseId, ", loading finished: ", initRes)
 			return nil
 		}
 	}
@@ -263,24 +275,24 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(content, nil, obj)
 	if err != nil {
-		logs.Error("failed to get GVK, err: ", err)
+		logs.Error("QueryResourceList failed to get GVK, err: ", err)
 		return err
 	}
 	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rt.ResourceId)
 	if err != nil {
-		logs.Error("failed to get dr: ", err)
+		logs.Error("QueryResourceList failed to get dr: ", err)
 		return err
 	}
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(content, config)
 	if err != nil {
-		logs.Error("yaml1.Unmarshal, err: ", err)
+		logs.Error("QueryResourceList yaml1.Unmarshal, err: ", err)
 		return err
 	}
 	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		logs.Error("objList: ", objList)
+		logs.Error("QueryResourceList ListOptions error: ", objList)
 	} else {
 		apiVersion := objList.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
@@ -334,24 +346,33 @@ func InitalResPool(rtr []models.ResourceTempathRel) {
 		rd := ResourceData{ResourceId: rt.ResourceId,
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
 		//courseId, ok := CoursePoolVar.CourseMap[rt.CourseId]
-		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
-		if !ok || cap(coursePool) == 0 {
-			// 1. Resource does not exist, create resource
-			resCh := make(chan InitTmplResource, rt.ResPoolSize)
+		resCh, _ := CoursePoolVar.Get(rt.CourseId)
+		// if !ok || cap(coursePool) == 0 {
+		// 1. Resource does not exist, create resource
+		if resCh == nil {
+			if rd.ResPoolSize == 0 {
+				rd.ResPoolSize = 10
+			}
+			resCh = make(chan *InitTmplResource, rt.ResPoolSize)
 			CoursePoolVar.Set(rt.CourseId, resCh)
-			for i := 0; i < rt.ResPoolSize; i++ {
-				CreatePoolResource(&rd)
-			}
-		} else {
-			for {
-				coursePool, _ = CoursePoolVar.Get(rt.CourseId)
-				if len(coursePool) < rt.ResPoolSize {
-					CreatePoolResource(&rd)
-				} else {
-					break
-				}
-			}
 		}
+		logs.Error(rt.CourseId, "  :   ------------------------1-rt.ResPoolSize-------------", rt.ResPoolSize)
+		for i := 0; i < rt.ResPoolSize; i++ {
+			CreatePoolResource(&rd)
+		}
+		// } else {
+		// 	for {
+		// 		coursePool, _ = CoursePoolVar.Get(rt.CourseId)
+		// 		logs.Error(rt.CourseId, "  :  ", len(coursePool), "-----------------------2--rt.ResPoolSize-------------", rt.ResPoolSize)
+
+		// 		if len(coursePool) < rt.ResPoolSize {
+		// 			CreatePoolResource(&rd)
+		// 		} else {
+		// 			break
+		// 		}
+		// 	}
+		// }
+		// time.Sleep(time.Minute)
 	}
 	CoursePoolVar.InitialFlag = true
 }
@@ -383,33 +404,20 @@ func ApplyCoursePool(rtr []models.ResourceTempathRel) error {
 	for _, rt := range rtr {
 		rd := ResourceData{ResourceId: rt.ResourceId,
 			EnvResource: rt.ResourcePath, CourseId: rt.CourseId, ResPoolSize: rt.ResPoolSize}
-		coursePool, ok := CoursePoolVar.Get(rt.CourseId)
-		if !ok || cap(coursePool) == 0 {
+		coursePool, _ := CoursePoolVar.Get(rt.CourseId)
+		if coursePool == nil {
+			if rd.ResPoolSize == 0 {
+				rd.ResPoolSize = 10
+			}
 			// 1. Resource does not exist, create resource
-			resCh := make(chan InitTmplResource, rt.ResPoolSize)
-			CoursePoolVar.Set(rt.CourseId, resCh)
-			for i := 0; i < rt.ResPoolSize; i++ {
-				CreatePoolResource(&rd)
-			}
-		} else {
-			for {
-				coursePool, ok = CoursePoolVar.Get(rt.CourseId)
-				if ok {
-					if len(coursePool) < rt.ResPoolSize {
-						CreatePoolResource(&rd)
-					} else {
-						break
-					}
-				} else {
-					resCh := make(chan InitTmplResource, rt.ResPoolSize)
-					CoursePoolVar.Set(rt.CourseId, resCh)
-					for i := 0; i < rt.ResPoolSize; i++ {
-						CreatePoolResource(&rd)
-					}
-					break
-				}
-			}
+			coursePool = make(chan *InitTmplResource, rt.ResPoolSize)
+			CoursePoolVar.Set(rt.CourseId, coursePool)
+			logs.Error(len(coursePool), "-----------------------3--rt.ResPoolSize-------------", rt.ResPoolSize)
 		}
+		for len(coursePool) < rt.ResPoolSize {
+			CreatePoolResource(&rd)
+		}
+
 	}
 	CoursePoolVar.InitialFlag = true
 	return nil

@@ -1,12 +1,16 @@
 package routers
 
 import (
+	"net/http"
 	"playground_backend/controllers"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
 )
 
 func init() {
+	//InsertFilter是提供一个过滤函数
+
 	// Get callback request link
 	beego.Router("/playground/oauth2/callback/links", &controllers.Oauth2CallBackLinksControllers{})
 	// authing callback request link,Get callback result
@@ -23,4 +27,21 @@ func init() {
 	// Health check interface
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})
+	beego.InsertFilter("/*", beego.BeforeRouter, corsFunc)
+}
+
+var success = []byte("SUPPORT OPTIONS")
+
+var corsFunc = func(ctx *context.Context) {
+	origin := ctx.Input.Header("Origin")
+	ctx.Output.Header("Access-Control-Allow-Methods", "OPTIONS,DELETE,POST,GET,PUT,PATCH")
+	ctx.Output.Header("Access-Control-Max-Age", "3600")
+	ctx.Output.Header("Access-Control-Allow-Headers", "X-Custom-Header,accept,Content-Type,Access-Token")
+	ctx.Output.Header("Access-Control-Allow-Credentials", "true")
+	ctx.Output.Header("Access-Control-Allow-Origin", origin)
+	if ctx.Input.Method() == http.MethodOptions {
+		// options请求，返回200
+		ctx.Output.SetStatus(http.StatusOK)
+		_ = ctx.Output.Body(success)
+	}
 }
