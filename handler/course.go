@@ -336,15 +336,6 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	customTemplatePath := fmt.Sprintf("%v/%v_%v_%v", CUSTOMIZATION, rcp.EulerBranch, courseDir, CONTAINER)
 	oldTemplatePath := fmt.Sprintf("%v/%v", rcp.EulerBranch, LXD)
 
-	logs.Error("------------------------ResourceId -- -------", rcp.ResourceId)
-	logs.Error("------ originTemplatePath---", originTemplatePath)
-	logs.Error("------ tmplTemplatePath---", tmplTemplatePath)
-	logs.Error("------ defTemplatePath---", defTemplatePath)
-	logs.Error("------ defContainerTemplatePath---", defContainerTemplatePath)
-	logs.Error("------ defTmplTemplatePath---", defTmplTemplatePath)
-	logs.Error("------ customTemplatePath---", customTemplatePath)
-	logs.Error("------ oldTemplatePath---", oldTemplatePath)
-
 	rcp.ResourcePath = customTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
@@ -391,7 +382,6 @@ func (rr *ReqResource) SaveCourseAndResRel(rcp *models.ResourceConfigPath, cours
 	rcp.ResourcePath = defTmplTemplatePath
 	rcpErr = models.QueryResourceConfigPath(rcp, "EulerBranch", "ResourcePath")
 	if rcp.Id > 0 {
-		logs.Error("================:使用了  :", defTmplTemplatePath)
 		rr.EnvResource = rcp.ResourcePath
 		rr.ResourceId = rcp.ResourceId
 		saveErr := SaveResourceTemplate(rr)
