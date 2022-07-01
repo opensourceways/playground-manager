@@ -1,6 +1,18 @@
 package models
 
-import "github.com/astaxie/beego/orm"
+import (
+	"fmt"
+
+	"github.com/astaxie/beego/logs"
+	"github.com/astaxie/beego/orm"
+)
+
+func QueryUserSubdomains(userid int) (result []string, total int64, err error) {
+	o := orm.NewOrm()
+	sql := fmt.Sprintf("SELECT sub_domain FROM playground_backend.pg_resource_info where user_id =%d  ", userid)
+	total, err = o.Raw(sql).QueryRows(&result)
+	return
+}
 
 func QueryResourceInfo(eoi *ResourceInfo, field ...string) error {
 	o := orm.NewOrm()
@@ -44,4 +56,41 @@ func UpdateUserResourceEnv(eoi *UserResourceEnv, fields ...string) error {
 	o := orm.NewOrm()
 	_, err := o.Update(eoi, fields...)
 	return err
+}
+
+func QueryResourceTempathRel(eoi *ResourceTempathRel, field ...string) error {
+	o := orm.NewOrm()
+	err := o.Read(eoi, field...)
+	return err
+}
+
+// insert data
+func InsertResourceTempathRel(eoi *ResourceTempathRel) (int64, error) {
+	o := orm.NewOrm()
+	id, err := o.Insert(eoi)
+	return id, err
+}
+
+func UpdateResourceTempathRel(eoi *ResourceTempathRel, fields ...string) error {
+	o := orm.NewOrm()
+	_, err := o.Update(eoi, fields...)
+	return err
+}
+
+func DeleteResourceTempathRel(eoi *ResourceTempathRel, fields ...string) error {
+	o := orm.NewOrm()
+	_, err := o.Delete(eoi, fields...)
+	return err
+}
+
+func QueryResourceTempathRelAll() (ite []ResourceTempathRel, num int64, err error) {
+	o := orm.NewOrm()
+	num, err = o.Raw("select *" +
+		" from pg_resource_tempath_rel").QueryRows(&ite)
+	if err == nil && num > 0 {
+		logs.Info("QueryResourceTempathRelAll, num: ", num)
+	} else {
+		logs.Error("QueryResourceTempathRelAll, err: ", err)
+	}
+	return
 }

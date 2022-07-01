@@ -2,14 +2,17 @@ package common
 
 import (
 	"encoding/base64"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
+	"fmt"
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 	"unicode"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"k8s.io/client-go/rest"
 )
 
 var GlobK8sConfig *rest.Config
@@ -24,9 +27,15 @@ var Pool = NUmStr + CharStr + SpecStr
 
 const DATE_FORMAT = "2006-01-02 15:04:05"
 const DATE_T_FORMAT = "2006-01-02T15:04:05"
+const DATE_T_Z_FORMAT = "2006-01-02T15:04:05Z"
+const DT_FORMAT = "2006-01-02"
+
+func GetCurDate() string {
+	return time.Now().Format(DT_FORMAT)
+}
 
 func GetCurTime() string {
-	return time.Now().Format(DATE_FORMAT)
+	return time.Now().Format(DATE_T_Z_FORMAT)
 }
 
 func CreateDir(dir string) error {
@@ -39,7 +48,7 @@ func CreateDir(dir string) error {
 	return err
 }
 
-func FileExists(path string) (bool) {
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
@@ -72,6 +81,9 @@ func TimeConverStr(ts, oldLayout, newLayout string) string {
 }
 
 func TimeTConverStr(ts string) string {
+	if len(ts) > 19 {
+		ts = ts[:19]
+	}
 	return TimeConverStr(ts, DATE_T_FORMAT, DATE_FORMAT)
 }
 
@@ -99,16 +111,34 @@ func TimeStrToInt(ts, layout string) int64 {
 
 // Time string to timestamp
 func PraseTimeInt(stringTime string) int64 {
+	if strings.Contains(stringTime, "T") {
+		return TimeStrToInt(stringTime, DATE_T_FORMAT)
+	}
 	return TimeStrToInt(stringTime, DATE_FORMAT)
 }
 
 func PraseTimeTint(tsStr string) int64 {
-	return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	if strings.Contains(tsStr, "T") {
+		return TimeStrToInt(tsStr, DATE_T_FORMAT)
+	}
+	return TimeStrToInt(tsStr, DATE_FORMAT)
 }
 
-func LocalTimeToUTC(strTime string) time.Time {
-	local, _ := time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+func LocalTimeToUTC(strTime string) (local time.Time) {
+	if strings.Contains(strTime, "T") {
+		local, _ = time.ParseInLocation(DATE_T_FORMAT, strTime, time.Local)
+	} else {
+		local, _ = time.ParseInLocation(DATE_FORMAT, strTime, time.Local)
+	}
 	return local
+}
+
+func GetTZHTime(hours time.Duration) string {
+	now := time.Now()
+	h, _ := time.ParseDuration("-1h")
+	dateTime := now.Add(hours * h).Format(DATE_T_Z_FORMAT)
+	fmt.Println("dateTime: ", dateTime)
+	return dateTime
 }
 
 func AesString(content []byte) (strs string) {
@@ -146,9 +176,11 @@ func RandomString(lens int) string {
 func DelFile(fileList []string) {
 	if len(fileList) > 0 {
 		for _, filex := range fileList {
-			err := os.Remove(filex)
-			if err != nil {
-				logs.Error(err)
+			if FileExists(filex) {
+				err := os.Remove(filex)
+				if err != nil {
+					logs.Error(err)
+				}
 			}
 		}
 	}
