@@ -31,6 +31,7 @@ func main() {
 	// 1. Initialize memory resources
 	handler.NewCoursePool(0)
 	handler.InitialResourcePool()
+	handler.InitAuthing()
 	// Initialize a scheduled task
 	taskOk := task.InitTask()
 	if !taskOk {

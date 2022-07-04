@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/url"
+	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
 	"strconv"
@@ -51,7 +53,7 @@ func (u *CrdResourceControllers) Post() {
 	var resData ResData
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
-	logs.Info("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
+	logs.Error("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
 	logs.Info("created crd parameters: ", string(u.Ctx.Input.RequestBody))
 	jsErr := json.Unmarshal(u.Ctx.Input.RequestBody, &rp)
 	if jsErr != nil {
@@ -329,5 +331,20 @@ func (u *CrdResourceControllers) CheckSubdomain() {
 		"data": resourceInfo,
 	}
 	u.ServeJSON()
+}
 
+// @Title Get MakeKubeconfig
+// @Description 加密和编码kubeconfig内容
+// @Param	kubeconfig		FormData 	file	true		"kubeconfig"
+// @Success 200 {object} CheckPgweb
+// @Failure 403 :status is err
+// @router /playground/crd/makeKubeconfig [post]
+func (u *CrdResourceControllers) MakeKubeconfig() {
+	aesStr := common.AesString(u.Ctx.Input.RequestBody)
+	encodeRes := base64.StdEncoding.EncodeToString([]byte(aesStr))
+	u.Data["json"] = map[string]interface{}{
+		"code": 200,
+		"data": encodeRes,
+	}
+	u.ServeJSON()
 }

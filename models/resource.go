@@ -90,7 +90,7 @@ func QueryResourceTempathRelAll() (ite []ResourceTempathRel, num int64, err erro
 	if err == nil && num > 0 {
 		logs.Info("QueryResourceTempathRelAll, num: ", num)
 	} else {
-		logs.Error("QueryResourceTempathRelAll, err: ", err)
+		logs.Error("QueryResourceTempathRelAll, err: ", err.Error())
 	}
 	return
 }

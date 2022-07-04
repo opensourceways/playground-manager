@@ -201,7 +201,7 @@ type UserCourseChapter struct {
 func CreateDb() bool {
 	BConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
-		logs.Error("config init error:", err)
+		logs.Error("config init error:", err.Error())
 		return false
 	}
 	prefix := BConfig.String("mysql::dbprefix")

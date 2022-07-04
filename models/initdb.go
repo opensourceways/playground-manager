@@ -15,7 +15,7 @@ import (
 func Initdb() bool {
 	BConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
-		logs.Error("config init error:", err)
+		logs.Error("config init error:", err.Error())
 		return false
 	}
 	//ConnDb()

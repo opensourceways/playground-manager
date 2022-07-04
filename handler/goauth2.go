@@ -1,9 +1,16 @@
 package handler
 
 import (
+	"context"
 	"crypto/md5"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"playground_backend/common"
 	"playground_backend/models"
 	"strconv"
@@ -14,9 +21,13 @@ import (
 	"github.com/Authing/authing-go-sdk/lib/management"
 	"github.com/Authing/authing-go-sdk/lib/model"
 	"github.com/astaxie/beego"
+	beegoCtx "github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/logs"
 	"github.com/bitly/go-simplejson"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -24,6 +35,8 @@ const (
 	GITHUB = "github"
 	WECHAT = "wechat"
 )
+
+var OIDCConfig *oauth2.Config
 
 type GiteeTokenInfo struct {
 	AccessToken  string `json:"access_token"`
@@ -88,6 +101,21 @@ type Identities struct {
 	City        string
 	Email       string
 	idpUserInfo IdpUserInfo
+}
+type AuthingLoginUser struct {
+	Birthdate           string `json:"birthdate,omitempty"`
+	Gender              string `json:"gender,omitempty"`
+	Name                string `json:"name,omitempty"`
+	Nickname            string `json:"nickname,omitempty"`
+	Picture             string `json:"picture,omitempty"`
+	UpdatedAT           string `json:"updated_at,omitempty"`
+	Website             string `json:"website,omitempty"`
+	ExternalID          string `json:"external_id,omitempty"`
+	Sub                 string `json:"sub,omitempty"`
+	Email               string `json:"email,omitempty"`
+	EmailVerified       bool   `json:"email_verified,omitempty"`
+	PhoneNumber         string `json:"phone_number,omitempty"`
+	PhoneNumberVerified bool   `json:"phone_number_verified,omitempty"`
 }
 
 type IdpUserInfo struct {
@@ -533,6 +561,15 @@ type ReqIdPrams struct {
 	IdentityId string
 }
 
+var (
+	authing_app_secret      string
+	authing_app_id          string
+	authing_userpool_secret string
+	authing_userpool_id     string
+	authing_authingurl      string
+	authing_redicturl       string
+)
+
 func GetAuthCode() {
 	clientSecret := beego.AppConfig.String("gitee::client_secret")
 	clientId := beego.AppConfig.String("gitee::client_id")
@@ -557,13 +594,13 @@ func GetAuthToken(clientId, clientSecret string, gtk *GiteeTokenInfo) error {
 	authenticationClient := authentication.NewClient(clientId, clientSecret)
 	resp, err := authenticationClient.GetAccessTokenByCode(gtk.AuthCode)
 	if err != nil {
-		logs.Error("GetAuthToken, err: ", err)
+		logs.Error("GetAuthToken, err: ", err.Error())
 		return err
 	} else {
 		logs.Info("GetAuthToken, resp: ", resp)
 		err = json.Unmarshal([]byte(resp), &resValue)
 		if err != nil {
-			logs.Error("jsonErr: ", err)
+			logs.Error("jsonErr: ", err.Error())
 			return err
 		}
 	}
@@ -780,7 +817,7 @@ func GetAuthUserBySub(userPoolId, userPoolSecret, subId string, gui *GiteeUserIn
 	client := management.NewClient(userPoolId, userPoolSecret)
 	resp, err := client.Detail(subId)
 	if err != nil {
-		logs.Error("GetAuthUserBySub, err: ", err)
+		logs.Error("GetAuthUserBySub, err: ", err.Error())
 		return err
 	} else {
 		logs.Info("GetAuthUserBySub, resp: ", resp)
@@ -794,13 +831,13 @@ func GetAuthUser(clientId, clientSecret, authToken string, gui *GiteeUserInfo) e
 	authenticationClient := authentication.NewClient(clientId, clientSecret)
 	resp, err := authenticationClient.GetUserInfoByAccessToken(authToken)
 	if err != nil {
-		logs.Error("GetAuthUser, err: ", err)
+		logs.Error("GetAuthUser, err: ", err.Error())
 		return err
 	} else {
 		logs.Info("GetAuthUser, resp: ", resp)
 		err = json.Unmarshal([]byte(resp), &resValue)
 		if err != nil {
-			logs.Error("jsonErr: ", err)
+			logs.Error("jsonErr: ", err.Error())
 			return err
 		}
 	}
@@ -820,13 +857,13 @@ func CheckAuthingIdToken(authToken AuthToken, rip *ReqIdPrams) error {
 	authenticationClient := authentication.NewClient(clientId, clientSecret)
 	resp, err := authenticationClient.ValidateToken(req)
 	if err != nil {
-		logs.Error("CheckAuthingIdToken, err: ", err)
+		logs.Error("CheckAuthingIdToken, err: ", err.Error())
 		return err
 	} else {
 		logs.Info("CheckAuthingIdToken, resp: ", resp)
 		err = json.Unmarshal([]byte(resp), &resValue)
 		if err != nil {
-			logs.Error("jsonErr: ", err)
+			logs.Error("jsonErr: ", err.Error())
 			return err
 		}
 		if sub, ok := resValue["sub"]; ok {
@@ -881,6 +918,14 @@ func SaveAuthUserInfo(authCode AuthCode, rui *RespUserInfo, gui *GiteeUserInfo) 
 	return nil
 }
 
+func RandString(nByte int) (string, error) {
+	b := make([]byte, nByte)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
 func SaveAuthUserByToken(rip ReqIdPrams, rui *RespUserInfo, gui *GiteeUserInfo, authToken AuthToken) error {
 	// 1. get environment variables
 	userPoolSecret := beego.AppConfig.String("gitee::userpool_secret")
@@ -888,7 +933,7 @@ func SaveAuthUserByToken(rip ReqIdPrams, rui *RespUserInfo, gui *GiteeUserInfo, 
 	// 2. define variable value
 	err := GetAuthUserBySub(userPoolId, userPoolSecret, rip.Id, gui)
 	if err != nil {
-		logs.Error("GetAuthUserBySub, err: ", err)
+		logs.Error("GetAuthUserBySub, err: ", err.Error())
 		gui.SubUid = rip.Id
 		GetAuthUserFromDbBySubId(rui, gui)
 		return err
@@ -1110,4 +1155,124 @@ func GetUserInfoByUserId(aui *models.AuthUserInfo, rui *RespUserInfo) {
 			logs.Error("SaveAuthUserInfo, post, sdErr: ", sdErr)
 		}
 	}
+}
+
+func Authorize(ctx *beegoCtx.Context) {
+	token := ctx.Input.Header("Authorization")
+	currentUserClient := authentication.NewClient(authing_userpool_id, authing_userpool_secret)
+	if currentUserClient == nil {
+		ctx.Abort(401, "authentication error")
+		return
+	}
+	currentUser, err := currentUserClient.GetCurrentUser(&token)
+	if err != nil {
+		ctx.Abort(401, "authentication error")
+		return
+	}
+	currentUserClient.SetCurrentUser(currentUser)
+	if err != nil {
+		ctx.Abort(401, "authentication error")
+		return
+	}
+	ctx.Input.SetData("me", currentUserClient)
+}
+
+func InitAuthing() error {
+	authing_app_secret = beego.AppConfig.String("gitee::client_secret")
+	authing_app_id = beego.AppConfig.String("gitee::client_id")
+	authing_userpool_secret = beego.AppConfig.String("gitee::userpool_secret")
+	authing_userpool_id = beego.AppConfig.String("gitee::userpool_id")
+	authing_authingurl = beego.AppConfig.String("gitee::callback_url")
+	authing_redicturl = beego.AppConfig.String("gitee::redirect_url")
+
+	ctx := context.Background()
+	oidcProvider, err := oidc.NewProvider(ctx, authing_redicturl+"/oidc")
+	if err != nil {
+		log.Println(err, "---------2.2-------:", authing_authingurl, "-------------", authing_redicturl)
+		return err
+	}
+	OIDCConfig = &oauth2.Config{
+		ClientID:     authing_app_id,
+		ClientSecret: authing_app_secret,
+		Endpoint:     oidcProvider.Endpoint(),
+		RedirectURL:  authing_authingurl,
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "external_id", "phone"},
+	}
+	return nil
+}
+
+func GetUserInfoByToken(access_token string) (userinfo *AuthingLoginUser, err error) {
+	resp, err := http.Get(authing_redicturl + "/oidc/me?access_token=" + access_token)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respDataBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	userinfo = new(AuthingLoginUser)
+	err = json.Unmarshal(respDataBytes, userinfo)
+	if err != nil {
+		return nil, err
+	}
+	return userinfo, nil
+
+}
+
+func SetCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
+	c := &http.Cookie{
+		Name:     name,
+		Value:    value,
+		MaxAge:   int(time.Hour.Seconds()),
+		Secure:   r.TLS != nil,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, c)
+}
+
+//GetJwtString GetJwtString
+func GetJwtString(expire int, id, name, provider string) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := make(jwt.MapClaims)
+	now := time.Now()
+	claims["exp"] = now.Add(time.Hour * time.Duration(expire)).Unix()
+	claims["iat"] = now.Unix()
+	claims["id"] = id
+	claims["nm"] = name
+	claims["p"] = provider
+	token.Claims = claims
+	tokenString, err := token.SignedString([]byte("xihesdf@#2334sdF"))
+	return tokenString, err
+}
+
+func GetTokenFromAuthing(code string) (interface{}, error) {
+	oauth2Token, err := OIDCConfig.Exchange(context.Background(), code)
+	if err != nil {
+		return nil, err
+	}
+	userInfo, err := GetUserInfoByToken(oauth2Token.AccessToken)
+	if err != nil {
+
+		return nil, err
+	}
+
+	token, err := GetJwtString(72, userInfo.Sub, userInfo.Name, userInfo.ExternalID)
+	if err != nil {
+
+		return nil, err
+	}
+	result := &struct {
+		AccessToken  string            `json:"accessToken"`
+		RefreshToken string            `json:"refreshToken"`
+		Token        string            `json:"token"`
+		User         *AuthingLoginUser `json:"user"`
+	}{}
+	result.User = userInfo
+	result.AccessToken = oauth2Token.AccessToken
+	result.RefreshToken = oauth2Token.RefreshToken
+	result.Token = token
+
+	return result, nil
 }

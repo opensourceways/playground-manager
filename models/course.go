@@ -25,7 +25,7 @@ func QueryAllCourseData(status int) (cs []Courses) {
 	}
 	if err != nil {
 		logs.Error("QueryUserCourseData, cur_time:",
-			common.GetCurTime(), ",err: ", err)
+			common.GetCurTime(), ",err: ", err.Error())
 	}
 	return
 }
@@ -77,7 +77,7 @@ func QueryAllCourseChapterData(status int) (cs []CoursesChapter) {
 		logs.Info("QueryAllCourseChapterData, search num: ", num)
 	} else {
 		logs.Error("QueryAllCourseChapterData, cur_time:",
-			common.GetCurTime(), ",err: ", err)
+			common.GetCurTime(), ",err: ", err.Error())
 	}
 	return
 }
@@ -91,7 +91,7 @@ func QueryAllCourseChapterById(courseId string) (cs []CoursesChapter) {
 		logs.Info("QueryAllCourseChapterById, search num: ", num)
 	} else {
 		logs.Error("QueryAllCourseChapterById, cur_time:",
-			common.GetCurTime(), ",err: ", err)
+			common.GetCurTime(), ",err: ", err.Error())
 	}
 	return
 }
@@ -125,7 +125,7 @@ func UpdateCourseAllChapter(status, flag int8, courseId string) error {
 	err := o.Raw("update pg_courses_chapter set status = ?,delete_time = ? where course_id = ?",
 		status, deletTime, courseId).QueryRow()
 	if err != nil && !strings.Contains(err.Error(), "no row found") {
-		logs.Info("UpdateCourseAllChapter err:", err)
+		logs.Info("UpdateCourseAllChapter err:", err.Error())
 	}
 	return err
 }
@@ -172,7 +172,7 @@ func UpdateUserCourseCompleted(CompletedFlag int, courseId string, userId int64)
 	o := orm.NewOrm()
 	err := o.Raw("update pg_user_course set completed_flag = ?,update_time = ? where course_id = ? and user_id = ?",
 		CompletedFlag, common.GetCurTime(), courseId, userId).QueryRow()
-	logs.Info("UpdateUserCourseCompleted", err)
+	logs.Info("UpdateUserCourseCompleted", err.Error())
 	return err
 }
 
@@ -181,7 +181,7 @@ func UpdateUserCourseByCourseId(status int, courseId string) error {
 	deletTime := common.GetCurTime()
 	err := o.Raw("update pg_user_course set status = ?,delete_time = ? where course_id = ? and status=?",
 		status, deletTime, courseId, 1).QueryRow()
-	logs.Info("UpdateUserCourseByCourseId", err)
+	logs.Info("UpdateUserCourseByCourseId", err.Error())
 	return err
 }
 
@@ -190,7 +190,7 @@ func UpdateUserCourseChapterByCourseId(status int, courseId string) error {
 	deletTime := common.GetCurTime()
 	err := o.Raw("update pg_user_course_chapter set status = ?,delete_time = ? where course_id = ? and status = ?",
 		status, deletTime, courseId, 1).QueryRow()
-	logs.Info("UpdateUserCourseChapterByCourseId", err)
+	logs.Info("UpdateUserCourseChapterByCourseId", err.Error())
 	return err
 }
 
@@ -200,7 +200,7 @@ func UpdateUserCourseChapterByChapterId(status int, courseId, chapterId string) 
 	err := o.Raw("update pg_user_course_chapter set status = ?,"+
 		"delete_time = ? where course_id = ? and chapter_id = ? and status = ?",
 		status, deletTime, courseId, chapterId, 1).QueryRow()
-	//logs.Info("UpdateUserCourseChapterByChapterId", err)
+	//logs.Info("UpdateUserCourseChapterByChapterId", err.Error())
 	return err
 }
 
@@ -213,7 +213,7 @@ func QueryUserCourseCount(userId int64) (count int64) {
 	o := orm.NewOrm()
 	err := o.Raw(sql).QueryRow(&res)
 	if err != nil {
-		logs.Error("QueryUserCourseCount, err: ", err)
+		logs.Error("QueryUserCourseCount, err: ", err.Error())
 		return 0
 	}
 	return res.Total
@@ -229,7 +229,7 @@ func QueryUserCourseData(currentPage, pageSize int, UserId int64) (uc []UserCour
 	}
 	if err != nil {
 		logs.Info("QueryUserCourseData, cur_time:",
-			common.GetCurTime(), ",err: ", err)
+			common.GetCurTime(), ",err: ", err.Error())
 	}
 	return
 }
@@ -244,7 +244,7 @@ func QueryChapterByCourseId(courseId string, UserId int64) (ucp []UserCourseChap
 	}
 	if err != nil {
 		logs.Info("QueryChapterByCourseId, cur_time:",
-			common.GetCurTime(), ",err: ", err)
+			common.GetCurTime(), ",err: ", err.Error())
 	}
 	return
 }

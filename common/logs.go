@@ -2,15 +2,16 @@ package common
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego/logs"
 	"fmt"
+
 	"github.com/astaxie/beego/config"
+	"github.com/astaxie/beego/logs"
 )
 
 func InitLogger() (err error) {
 	BConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
-		fmt.Println("config init error:", err)
+		fmt.Println("config init error:", err.Error())
 		return
 	}
 	maxlines, lerr := BConfig.Int64("log::maxlines")
@@ -26,12 +27,12 @@ func InitLogger() (err error) {
 
 	confStr, err := json.Marshal(logConf)
 	if err != nil {
-		fmt.Println("marshal failed,err:", err)
+		fmt.Println("marshal failed,err:", err.Error())
 		return
 	}
 	err = logs.SetLogger(logs.AdapterFile, string(confStr))
 	if err != nil {
-		fmt.Println("marshal failed,err:", err)
+		fmt.Println("marshal failed,err:", err.Error())
 		return
 	}
 	logs.SetLogFuncCall(true)

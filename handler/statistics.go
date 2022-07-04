@@ -3,8 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +11,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
 type StatisticsData struct {
@@ -106,7 +107,7 @@ func SplitStatistLog(filePath string) error {
 	if f.Size() > logFileSize {
 		err = RenameStatistLog(filePath)
 		if err != nil {
-			logs.Error("RenameStatistLog, Failed to split file, err:", err)
+			logs.Error("RenameStatistLog, Failed to split file, err:", err.Error())
 			return err
 		}
 	}
@@ -148,7 +149,7 @@ func DataFormatConver(sd StatisticsData) []byte {
 	mapData["appId"] = beego.AppConfig.String("gitee::client_id")
 	data, err := json.Marshal(mapData)
 	if err != nil {
-		logs.Error("err: ", err)
+		logs.Error("err: ", err.Error())
 	}
 	return []byte(data)
 }

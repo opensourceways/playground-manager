@@ -180,7 +180,7 @@ func GetResConfig(resourceId string) (resConfig *rest.Config, err error) {
 	}
 	resConfig, err = clientcmd.BuildConfigFromFlags("", filePath)
 	if err != nil {
-		logs.Error("BuildConfigFromFlags, err: ", err)
+		logs.Error("BuildConfigFromFlags, err: ", err.Error())
 		return
 	}
 	return
@@ -469,7 +469,7 @@ func DownLoadTemplate(yamlDir, fPath string) (error, string) {
 	logs.Info("DownLoadTemplate, gitUrl: ", gitUrl)
 	resp, err := http.Get(gitUrl)
 	if err != nil {
-		logs.Error("DownLoadTemplate, error: ", err)
+		logs.Error("DownLoadTemplate, error: ", err.Error())
 		return err, localPath
 	}
 	defer resp.Body.Close()
@@ -501,7 +501,7 @@ func UnstructuredYaml(yamlData []byte) {
 	dec := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 	_, gvk, err := dec.Decode(yamlData, nil, obj)
 	if err != nil {
-		logs.Error("dec.Decode, err: ", err)
+		logs.Error("dec.Decode, err: ", err.Error())
 	}
 	// Get the common metadata, and show GVK
 	logs.Info(obj.GetName(), gvk.String())
@@ -510,23 +510,23 @@ func UnstructuredYaml(yamlData []byte) {
 func GetGVRdyClient(gvk *schema.GroupVersionKind, nameSpace, resourceId string) (dr dynamic.ResourceInterface, err error) {
 	config, err := GetResConfig(resourceId)
 	if err != nil {
-		logs.Error("GetResConfig, err: ", err)
+		logs.Error("GetResConfig, err: ", err.Error())
 		return
 	}
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
-		logs.Error("NewDiscoveryClientForConfig, err: ", err)
+		logs.Error("NewDiscoveryClientForConfig, err: ", err.Error())
 		return
 	}
 	mapperGVRGVK := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(discoveryClient))
 	resourceMapper, err := mapperGVRGVK.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
-		logs.Error("RESTMapping, err: ", err)
+		logs.Error("RESTMapping, err: ", err.Error())
 		return
 	}
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		logs.Error("dynamic.NewForConfig, err: ", err)
+		logs.Error("dynamic.NewForConfig, err: ", err.Error())
 		return
 	}
 	if resourceMapper.Scope.Name() == meta.RESTScopeNameNamespace {
@@ -694,7 +694,7 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 	err := error(nil)
 	objGetData, err = dr.Get(context.TODO(), objGetData.GetName(), metav1.GetOptions{})
 	if err != nil {
-		logs.Error("7 -----------------UpdateObjData GetOptions error: ", err)
+		logs.Error("7 -----------------UpdateObjData GetOptions error: ", err.Error())
 		return objGetData
 	}
 	metadata, ok := ParsingMap(objGetData.Object, "metadata")
@@ -809,13 +809,25 @@ func UpdateObjData(dr dynamic.ResourceInterface, cr *CourseResources, objGetData
 func GetResInfo(objGetData *unstructured.Unstructured, dr dynamic.ResourceInterface,
 	config *YamlConfig, obj *unstructured.Unstructured, updateFlag bool, itr *InitTmplResource) ResListStatus {
 	err := error(nil)
+
+	var tryNum int
+tryNext:
 	rls := ResListStatus{ServerCreatedFlag: false, ServerReadyFlag: false,
 		ServerInactiveFlag: false, ServerRecycledFlag: false, ServerErroredFlag: false}
 	objGetData, err = dr.Get(context.TODO(), objGetData.GetName(), metav1.GetOptions{})
 	if err != nil {
-		logs.Error("-----------------get resource GetResInfo error: ", objGetData)
-		ServerErroredFlag = true
+		logs.Error("-----------------get resource GetResInfo error: ", err.Error())
 		rls.ServerErroredFlag = true
+		tryNum++
+		if tryNum >= 10 {
+			err = dr.Delete(context.TODO(), objGetData.GetName(), metav1.DeleteOptions{})
+			if err != nil {
+				logs.Error("-----------------Delete resource GetResInfo error: ", err.Error())
+			}
+			ServerErroredFlag = true
+		}
+		time.Sleep(time.Second * 5)
+		goto tryNext
 	} else {
 		apiVersion := objGetData.GetAPIVersion()
 		if config.ApiVersion == apiVersion {
@@ -1071,7 +1083,10 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 			logs.Info("Mirror environment is ready...resName: ", objGetData.GetName())
 			objGetData = UpdateObjData(dr, cr, objGetData, itr, false)
 			_, err = dr.Update(context.TODO(), objGetData, metav1.UpdateOptions{})
-			logs.Error(objGetData.Object["status"], "-------------------------------------update crd err: ", err)
+			if err != nil {
+
+				logs.Error(objGetData.Object["status"], "-------------------------------------update crd err: ", err)
+			}
 
 			break
 		}
@@ -1101,7 +1116,7 @@ func UpdateRes(rri *ResResourceInfo, objGetData *unstructured.Unstructured, dr d
 	if isDelete {
 		err = dr.Delete(context.TODO(), objGetData.GetName(), metav1.DeleteOptions{})
 		if err != nil {
-			logs.Error("delete, err: ", err)
+			logs.Error("delete, err: ", err.Error())
 		}
 		return errors.New("deleted")
 	}
@@ -1180,13 +1195,13 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				obj := &unstructured.Unstructured{}
 				_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 				if err != nil {
-					logs.Error("failed to get GVK, err: ", err)
+					logs.Error("failed to get GVK, err: ", err.Error())
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 				dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 				if err != nil {
-					logs.Error("failed to get dr: ", err)
+					logs.Error("failed to get dr: ", err.Error())
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
@@ -1194,19 +1209,19 @@ func ApplyPoolInstance(yamlData []byte, rri *ResResourceInfo, rr ReqResource, ya
 				config := new(YamlConfig)
 				err = ymV2.Unmarshal(yamlData, config)
 				if err != nil {
-					logs.Error("yaml1.Unmarshal, err: ", err)
+					logs.Error("yaml1.Unmarshal, err: ", err.Error())
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					break
 				}
 				objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 				if err != nil {
-					logs.Error("ApplyPoolInstance, dr.Get, err: ", err)
+					logs.Error("ApplyPoolInstance, dr.Get, err: ", err.Error())
 					AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 					continue
 				} else {
 					err = UpdateRes(rri, objGet, dr, config, obj, objCreate, &cr, itr)
 					if err != nil {
-						logs.Error("UpdateRes err: ", err)
+						logs.Error("UpdateRes err: ", err.Error())
 						AddResPool(rr.CourseId, rr.ResourceId, rr.EnvResource)
 						continue
 					}
@@ -1236,27 +1251,27 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
-		logs.Error("failed to get GVK, err: ", err)
+		logs.Error("failed to get GVK, err: ", err.Error())
 		return err
 	}
 	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rr.ResourceId)
 	if err != nil {
-		logs.Error("failed to get dr: ", err)
+		logs.Error("failed to get dr: ", err.Error())
 		return err
 	}
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(yamlData, config)
 	if err != nil {
-		logs.Error("yaml1.Unmarshal, err: ", err)
+		logs.Error("yaml1.Unmarshal, err: ", err.Error())
 		return err
 	}
 	objGet, err = dr.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 	if err != nil {
-		logs.Notice(obj.GetName(), "Get an instance from the prepared instance, err: ", err)
+		logs.Notice(obj.GetName(), "Get an instance from the prepared instance, err: ", err.Error())
 		err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 		if err != nil {
-			logs.Error("ApplyPoolInstance, err: ", err)
+			logs.Error("ApplyPoolInstance, err: ", err.Error())
 			return err
 		}
 	} else {
@@ -1264,14 +1279,14 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			resName := objGet.GetName()
 			err = dr.Delete(context.TODO(), resName, metav1.DeleteOptions{})
 			if err != nil {
-				logs.Error("delete, err: ", err)
+				logs.Error("delete, err: ", err.Error())
 			} else {
 				logs.Info("resName: ", resName, ", Forced to delete. rr.ForceDelete: ", rr.ForceDelete)
 			}
 			rr.ForceDelete = 1
 			err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 			if err != nil {
-				logs.Error("ApplyPoolInstance, err: ", err)
+				logs.Error("ApplyPoolInstance, err: ", err.Error())
 				return err
 			}
 		} else {
@@ -1279,7 +1294,7 @@ func CreateInstance(rri *ResResourceInfo, rr ReqResource, yamlDir, localPath str
 			if err != nil {
 				err = ApplyPoolInstance(yamlData, rri, rr, yamlDir, localPath)
 				if err != nil {
-					logs.Error("ApplyPoolInstance, err: ", err)
+					logs.Error("ApplyPoolInstance, err: ", err.Error())
 					return err
 				}
 			}
@@ -1324,19 +1339,19 @@ func GetCreateRes(yamlData []byte, rri *ResResourceInfo, resourceId string,
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
-		logs.Error("failed to get GVK, err: ", err)
+		logs.Error("failed to get GVK, err: ", err.Error())
 		return err
 	}
 	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), resourceId)
 	if err != nil {
-		logs.Error("failed to get dr: ", err)
+		logs.Error("failed to get dr: ", err.Error())
 		return err
 	}
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(yamlData, config)
 	if err != nil {
-		logs.Error("yaml1.Unmarshal, err: ", err)
+		logs.Error("yaml1.Unmarshal, err: ", err.Error())
 		return err
 	}
 	curCreateTime := ""
@@ -1533,19 +1548,19 @@ func ClearInvaildResource() error {
 		obj := &unstructured.Unstructured{}
 		_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(content, nil, obj)
 		if err != nil {
-			logs.Error("failed to get GVK, err: ", err)
+			logs.Error("failed to get GVK, err: ", err.Error())
 			return err
 		}
 		dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rt.ResourceId)
 		if err != nil {
-			logs.Error("failed to get dr: ", err)
+			logs.Error("failed to get dr: ", err.Error())
 			return err
 		}
 		// store db
 		config := new(YamlConfig)
 		err = ymV2.Unmarshal(content, config)
 		if err != nil {
-			logs.Error("yaml1.Unmarshal, err: ", err)
+			logs.Error("yaml1.Unmarshal, err: ", err.Error())
 			return err
 		}
 		DelInvaildResource(objList, dr, config, obj)

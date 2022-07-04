@@ -40,7 +40,7 @@ func (u *CourseChapterControllers) Post() {
 	logs.Info("Bind Course parameters: ", string(u.Ctx.Input.RequestBody))
 	err := json.Unmarshal(u.Ctx.Input.RequestBody, &crp)
 	if err != nil {
-		logs.Error("json.Unmarshal, err: ", err)
+		logs.Error("json.Unmarshal, err: ", err.Error())
 		resData.Code = 404
 		resData.Mesg = "Parameter error"
 		logs.Error("Bind Course parameters: ", crp)

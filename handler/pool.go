@@ -65,6 +65,7 @@ func (c *CoursePool) Get(key string) (chan *InitTmplResource, bool) {
 }
 
 func (c *CoursePool) Set(key string, v chan *InitTmplResource) {
+
 	PoolSync.Lock()
 	defer PoolSync.Unlock()
 	c.CourseMap[key] = v
@@ -188,24 +189,28 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		gvk       *schema.GroupVersionKind
 		dr        dynamic.ResourceInterface
 	)
+
+	logs.Info("rd.CourseId -------1-----", rd.CourseId, "-------------- rd.ResourceId :  ", rd.ResourceId)
+
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(yamlData, nil, obj)
 	if err != nil {
-		logs.Error("failed to get GVK, err: ", err)
+		logs.Error("failed to get GVK, err: ", err.Error())
 		return err
 	}
 	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rd.ResourceId)
 	if err != nil {
-		logs.Error("failed to get dr: ", err)
+		logs.Error("failed to get dr: ", err.Error())
 		return err
 	}
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(yamlData, config)
 	if err != nil {
-		logs.Error("yaml1.Unmarshal, err: ", err)
+		logs.Error("yaml1.Unmarshal, err: ", err.Error())
 		return err
 	}
+	logs.Info("rd.CourseId -------2-----", rd.CourseId, "-------------- rd.ResourceId :  ", rd.ResourceId)
 
 	coursePool, _ := CoursePoolVar.Get(rd.CourseId)
 	if coursePool == nil {
@@ -219,6 +224,8 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 		logs.Error("lots of resource ------------------ ", len(coursePool), ",CourseId: ", rd.CourseId)
 		return errors.New("too many resources")
 	}
+	logs.Info("rd.CourseId -------3-----", ServerErroredFlag, "-------------- rd.ResourceId :  ", rd.ResourceId)
+
 	if ServerErroredFlag {
 		err := fmt.Errorf("2 .error occurred on create crd at : %v, pause to create new crd util resolve this problem ", time.Now())
 		logs.Error(err)
@@ -227,7 +234,7 @@ func CreateSingleRes(yamlData []byte, rd *ResourceData) error {
 	logs.Info("To start creating a resource, the resource name:", obj.GetName(), ",len(coursePool) = ", len(coursePool))
 	objCreate, err = dr.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
-		logs.Error("Create resource err: ", err)
+		logs.Error("Create resource err: ", err.Error())
 		return err
 	}
 	itr := new(InitTmplResource)
@@ -281,19 +288,19 @@ func QueryResourceList(rt models.ResourceTempathRel) error {
 	obj := &unstructured.Unstructured{}
 	_, gvk, err = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(content, nil, obj)
 	if err != nil {
-		logs.Error("QueryResourceList failed to get GVK, err: ", err)
+		logs.Error("QueryResourceList failed to get GVK, err: ", err.Error())
 		return err
 	}
 	dr, err = GetGVRdyClient(gvk, obj.GetNamespace(), rt.ResourceId)
 	if err != nil {
-		logs.Error("QueryResourceList failed to get dr: ", err)
+		logs.Error("QueryResourceList failed to get dr: ", err.Error())
 		return err
 	}
 	// store db
 	config := new(YamlConfig)
 	err = ymV2.Unmarshal(content, config)
 	if err != nil {
-		logs.Error("QueryResourceList yaml1.Unmarshal, err: ", err)
+		logs.Error("QueryResourceList yaml1.Unmarshal, err: ", err.Error())
 		return err
 	}
 	objList, err = dr.List(context.TODO(), metav1.ListOptions{})
@@ -320,9 +327,10 @@ func CreatePoolResource(rd *ResourceData) {
 		return
 	}
 	content := PoolParseTmpl(yamlDir, rd, localPath)
+
 	createErr := CreateSingleRes(content, rd)
 	if createErr != nil {
-		logs.Error("createErr: ", createErr)
+		logs.Error("CreateSingleRes createErr: ", createErr)
 		return
 	}
 }

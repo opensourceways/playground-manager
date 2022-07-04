@@ -12,10 +12,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
-	"k8s.io/client-go/rest"
 )
-
-var GlobK8sConfig *rest.Config
 
 func Catchs() {
 	if err := recover(); err != nil {

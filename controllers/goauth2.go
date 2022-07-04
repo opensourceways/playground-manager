@@ -7,13 +7,16 @@ package controllers
 
 import (
 	"encoding/json"
+	"net/http"
 	"os"
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
 
+	"github.com/Authing/authing-go-sdk/lib/authentication"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 type Oauth2CallBackLinksControllers struct {
@@ -287,4 +290,47 @@ func (u *UserInfoControllers) Get() {
 		u.RetData(gud)
 	}
 	return
+}
+
+func (u *UserInfoControllers) CheckLogin() {
+	state, _ := handler.RandString(16)
+	nonce, _ := handler.RandString(16)
+	handler.SetCallbackCookie(u.Ctx.ResponseWriter, u.Ctx.Request, "state", state)
+	handler.SetCallbackCookie(u.Ctx.ResponseWriter, u.Ctx.Request, "nonce", nonce)
+	u.Redirect(handler.OIDCConfig.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+}
+
+func (u *UserInfoControllers) AuthingCallback() {
+	state := u.Ctx.GetCookie("state")
+	if len(state) == 0 {
+		u.Data["json"] = "state is empty"
+		u.ServeJSON()
+		return
+	}
+	if u.GetString("state") != state {
+		u.Data["json"] = "state is bad"
+		u.ServeJSON()
+		return
+	}
+	result, err := handler.GetTokenFromAuthing(u.GetString("code"))
+	if err != nil {
+		u.Data["json"] = "code is bad"
+		u.ServeJSON()
+		return
+	}
+	u.Data["json"] = result
+	u.ServeJSON()
+
+}
+
+// @Summary GetCurrentUser
+// @Description 获取用户资料, 在请求的request的header中必须带有accessToken
+// @Tags  User
+// @Accept json
+// @Produce json
+// @Router /v1/user/getCurrentUser [get]
+func (u *UserInfoControllers) GetCurrentUser() {
+	currentUserClient := u.Data["me"].(*authentication.Client)
+	u.Data["json"] = currentUserClient.ClientUser
+	u.ServeJSON()
 }
