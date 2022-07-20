@@ -3,6 +3,7 @@ package routers
 import (
 	"net/http"
 	"playground_backend/controllers"
+	"playground_backend/handler"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
@@ -18,8 +19,8 @@ func init() {
 	// User authorization and authentication, obtain user information
 	beego.Router("/playground/oauth2/authentication", &controllers.Oauth2AuthenticationControllers{})
 	// Get user information after successful login(Obtain user information after authorization)
-	beego.Router("/playground/user/information", &controllers.UserInfoControllers{})
-	beego.Router("/playground/user/checklogin", &controllers.UserInfoControllers{}, "get:CheckLogin")
+	beego.Router("/playground/oauth2/checklogin", &controllers.UserInfoControllers{}, "get:CheckLogin")
+	beego.Router("/playground/user/information", &controllers.UserInfoControllers{}, "get:GetCurrentUser")
 	beego.Router("/playground/oauth2/callback", &controllers.UserInfoControllers{}, "get:AuthingCallback")
 	// The user creates crd resources and returns the result of creating resources
 	beego.Router("/playground/crd/resource", &controllers.CrdResourceControllers{})
@@ -31,6 +32,9 @@ func init() {
 	beego.Router("/healthz/readiness", &controllers.HealthzReadController{})
 	beego.Router("/healthz/liveness", &controllers.HealthzLiveController{})
 	beego.InsertFilter("/*", beego.BeforeRouter, corsFunc)
+	beego.InsertFilter("/playground/crd/*", beego.BeforeRouter, handler.Authorize)
+	beego.InsertFilter("/playground/users/*", beego.BeforeRouter, handler.Authorize)
+	beego.InsertFilter("/playground/user/*", beego.BeforeRouter, handler.Authorize)
 }
 
 var success = []byte("SUPPORT OPTIONS")
@@ -39,7 +43,7 @@ var corsFunc = func(ctx *context.Context) {
 	origin := ctx.Input.Header("Origin")
 	ctx.Output.Header("Access-Control-Allow-Methods", "OPTIONS,DELETE,POST,GET,PUT,PATCH")
 	ctx.Output.Header("Access-Control-Max-Age", "3600")
-	ctx.Output.Header("Access-Control-Allow-Headers", "X-Custom-Header,accept,Content-Type,Access-Token")
+	ctx.Output.Header("Access-Control-Allow-Headers", "X-Custom-Header,accept,Content-Type,Access-Token,Authorization,token")
 	ctx.Output.Header("Access-Control-Allow-Credentials", "true")
 	ctx.Output.Header("Access-Control-Allow-Origin", origin)
 	if ctx.Input.Method() == http.MethodOptions {

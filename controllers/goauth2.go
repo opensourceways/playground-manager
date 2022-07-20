@@ -7,13 +7,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
 
-	"github.com/Authing/authing-go-sdk/lib/authentication"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -26,6 +26,7 @@ type Oauth2CallBackLinksControllers struct {
 type CallBackUrlData struct {
 	ClientId    string `json:"appId"`
 	CallbackUrl string `json:"callbackUrl"`
+	AppHost     string `json:"appHost"`
 }
 
 type GetResData struct {
@@ -58,6 +59,7 @@ func (u *Oauth2CallBackLinksControllers) Get() {
 	resp.Mesg = "success"
 	cbu.ClientId = clientId
 	cbu.CallbackUrl = callbackUrl
+	cbu.AppHost = beego.AppConfig.String("gitee::redirect_url")
 	resp.CallbackInfo = cbu
 	u.RetData(resp)
 	return
@@ -156,10 +158,11 @@ func (c *Oauth2AuthenticationControllers) RetData(resp OauthInfoData) {
 }
 
 type OauthInfoData struct {
-	UserInfo handler.RespUserInfo `json:"userInfo"`
-	Mesg     string               `json:"message"`
-	Code     int                  `json:"code"`
-	Domain   string               `json:"domain"`
+	UserInfo handler.RespUserInfo  `json:"userInfo"`
+	Other    handler.GiteeUserInfo `json:"other"`
+	Mesg     string                `json:"message"`
+	Code     int                   `json:"code"`
+	Domain   string                `json:"domain"`
 }
 
 // @Title Oauth2Authentication
@@ -208,6 +211,7 @@ func (u *Oauth2AuthenticationControllers) Post() {
 	oauthInfo.Code = 200
 	oauthInfo.Mesg = "success"
 	oauthInfo.UserInfo = rui
+	oauthInfo.Other = gui
 	oauthInfo.Domain = os.Getenv("DOMAIN")
 	u.RetData(oauthInfo)
 	// 2. Save key information to file
@@ -223,7 +227,7 @@ func (u *Oauth2AuthenticationControllers) Post() {
 	if sdErr != nil {
 		logs.Error("StatisticsLog, sdErr: ", sdErr)
 	}
-	return
+
 }
 
 type UserInfoControllers struct {
@@ -301,26 +305,34 @@ func (u *UserInfoControllers) CheckLogin() {
 }
 
 func (u *UserInfoControllers) AuthingCallback() {
-	state := u.Ctx.GetCookie("state")
-	if len(state) == 0 {
-		u.Data["json"] = "state is empty"
-		u.ServeJSON()
-		return
-	}
-	if u.GetString("state") != state {
-		u.Data["json"] = "state is bad"
-		u.ServeJSON()
-		return
-	}
+	// state := u.Ctx.GetCookie("state")
+	// if len(state) == 0 {
+	// 	u.Data["json"] = "state is empty"
+	// 	u.ServeJSON()
+	// 	return
+	// }
+	// if u.GetString("state") != state {
+	// 	u.Data["json"] = "state is bad"
+	// 	u.ServeJSON()
+	// 	return
+	// }
 	result, err := handler.GetTokenFromAuthing(u.GetString("code"))
+
 	if err != nil {
-		u.Data["json"] = "code is bad"
+		u.Data["json"] = fmt.Sprintf("code is bad, error:%v", err)
 		u.ServeJSON()
 		return
 	}
+	var authToken handler.AuthToken
+	authToken.Id = result.User.Sub
+	var rip handler.ReqIdPrams
+	rip.Id = authToken.Id
+	rui := handler.RespUserInfo{}
+	var gui handler.GiteeUserInfo
+	gui.AccessToken = result.Token
+	handler.SaveAuthUserByToken(rip, &rui, &gui, authToken)
 	u.Data["json"] = result
 	u.ServeJSON()
-
 }
 
 // @Summary GetCurrentUser
@@ -328,9 +340,20 @@ func (u *UserInfoControllers) AuthingCallback() {
 // @Tags  User
 // @Accept json
 // @Produce json
-// @Router /v1/user/getCurrentUser [get]
+// @Router /playground/user/information [get]
 func (u *UserInfoControllers) GetCurrentUser() {
-	currentUserClient := u.Data["me"].(*authentication.Client)
-	u.Data["json"] = currentUserClient.ClientUser
+	userid := u.Data["me"].(string)
+	userpool_id := beego.AppConfig.String("gitee::userpool_id")
+	userpool_secret := beego.AppConfig.String("gitee::userpool_secret")
+	gui := new(handler.GiteeUserInfo)
+	handler.GetAuthUserBySub(userpool_id, userpool_secret, userid, gui)
+
+	// useridInt, _ := strconv.Atoi(userid)
+	// aui := models.AuthUserInfo{AccessToken: u.GetString("token"), UserId: int64(useridInt)}
+	// rui := handler.RespUserInfo{}
+	// handler.GetGiteeUserData(&aui, &rui)
+
+	// gui.Identity = nil
+	u.Data["json"] = gui
 	u.ServeJSON()
 }

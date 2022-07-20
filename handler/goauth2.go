@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"playground_backend/common"
 	"playground_backend/models"
-	"strconv"
 	"time"
 
 	"github.com/Authing/authing-go-sdk/lib/authentication"
@@ -374,9 +373,14 @@ func ProcOauthData(giteeToken GiteeTokenInfo, giteeUser *GiteeUserInfo, token st
 	gui := models.AuthUserInfo{SubUid: giteeUser.SubUid}
 	aud := models.AuthUserDetail{}
 	queryErr := models.QueryAuthUserInfo(&gui, "SubUid")
+	fmt.Println(gui.SubUid, "--------0------UpdateAuthUserInfo-", gui.UserId)
+
 	if gui.UserId > 0 {
 		userId = gui.UserId
 		userList, userDetailList = CreateGiteeUserInfo(&gui, &aud, giteeUser, 2, token)
+		fmt.Println(gui.SubUid, "--------1------UpdateAuthUserInfo-", token)
+
+		fmt.Println(gui.SubUid, "--------2------UpdateAuthUserInfo-", gui.AccessToken)
 		upErr := models.UpdateAuthUserInfo(&gui, userList...)
 		if upErr != nil {
 			logs.Error("ProcOauthData, upErr: ", upErr)
@@ -610,7 +614,7 @@ func GetAuthToken(clientId, clientSecret string, gtk *GiteeTokenInfo) error {
 
 func UserConstructor(user *model.User, gui *GiteeUserInfo) {
 	if user.Token != nil {
-		gui.AccessToken = *user.Token
+		// gui.AccessToken = *user.Token
 	}
 	if user.Name != nil {
 		gui.Name = *user.Name
@@ -892,6 +896,8 @@ func SaveAuthUserInfo(authCode AuthCode, rui *RespUserInfo, gui *GiteeUserInfo) 
 	if tokenErr != nil {
 		logs.Error("tokenErr: ", tokenErr)
 	}
+
+	fmt.Println("---------1------SaveAuthUserInfo--", gtk.AccessToken)
 	if len(gtk.AccessToken) > 1 {
 		// 4. Get user information
 		userErr := GetAuthUser(clientId, clientSecret, gtk.AccessToken, gui)
@@ -901,7 +907,7 @@ func SaveAuthUserInfo(authCode AuthCode, rui *RespUserInfo, gui *GiteeUserInfo) 
 			return userErr
 		}
 		if len(gui.SubUid) > 0 {
-
+			fmt.Println("---------3------SaveAuthUser--")
 			// 5. Store user information
 			saveErr := SaveAuthUser(rui, gtk, gui, authToken)
 			if saveErr != nil {
@@ -938,6 +944,8 @@ func SaveAuthUserByToken(rip ReqIdPrams, rui *RespUserInfo, gui *GiteeUserInfo, 
 		GetAuthUserFromDbBySubId(rui, gui)
 		return err
 	}
+
+	fmt.Println("---------1------SaveAuthUserByToken--", gui.AccessToken)
 	var gtk GiteeTokenInfo
 	gtk.AccessToken = gui.AccessToken
 	if len(gtk.AccessToken) > 1 {
@@ -945,7 +953,9 @@ func SaveAuthUserByToken(rip ReqIdPrams, rui *RespUserInfo, gui *GiteeUserInfo, 
 		if len(gui.SubUid) > 0 {
 			// 5. Store user information
 			gtk.IdToken = gui.AccessToken
-			gtk.AccessToken = ""
+			// gtk.AccessToken = ""
+
+			fmt.Println("---------2------SaveAuthUserByToken--", gui.AccessToken)
 			saveErr := SaveAuthUser(rui, gtk, gui, authToken)
 			if saveErr != nil {
 				logs.Error("saveErr: ", saveErr)
@@ -1032,16 +1042,14 @@ func GetAuthUserFromDb(gtk GiteeTokenInfo, rui *RespUserInfo, guu *GiteeUserInfo
 }
 
 func SaveAuthUser(rui *RespUserInfo, gtk GiteeTokenInfo, gui *GiteeUserInfo, authToken AuthToken) error {
-	token, terr := common.GenToken(strconv.Itoa(int(rui.UserId)), gtk.AccessToken)
-	if terr == nil {
-		userId := ProcOauthData(gtk, gui, token, authToken)
-		gui.UserId = userId
-		CreateRespUserInfo(rui, gtk, gui)
-		rui.UserId = userId
-		rui.UserToken = token
-	} else {
-		return terr
-	}
+	// token, terr := common.GenToken(strconv.Itoa(int(rui.UserId)), gtk.AccessToken)
+	token := gtk.AccessToken
+	userId := ProcOauthData(gtk, gui, token, authToken)
+	gui.UserId = userId
+	CreateRespUserInfo(rui, gtk, gui)
+	rui.UserId = userId
+	rui.UserToken = token
+
 	return nil
 }
 
@@ -1053,13 +1061,13 @@ func CreateRespUserInfo(rui *RespUserInfo, giteeToken GiteeTokenInfo, giteeUser 
 
 //CheckToken Check whether the token is legal
 func GetGiteeUserData(gui *models.AuthUserInfo, rui *RespUserInfo) bool {
-	queryErr := models.QueryAuthUserInfo(gui, "AccessToken", "UserId")
+	queryErr := models.QueryAuthUserInfo(gui, "AccessToken", "UserId", "ExpirationTime")
 	if gui.UserId > 0 {
 		now := time.Now().Format(common.DATE_FORMAT)
 		logs.Info("token: now: ", now, ",expir: ", gui.ExpirationTime)
-		if now > gui.ExpirationTime {
-			return false
-		}
+		// if now > gui.ExpirationTime {
+		// 	return false
+		// }
 	} else {
 		logs.Error("queryErr: ", queryErr)
 		return false
@@ -1069,13 +1077,13 @@ func GetGiteeUserData(gui *models.AuthUserInfo, rui *RespUserInfo) bool {
 }
 
 func CheckToken(gui *models.AuthUserInfo) bool {
-	queryErr := models.QueryAuthUserInfo(gui, "AccessToken", "UserId")
+	queryErr := models.QueryAuthUserInfo(gui, "AccessToken", "UserId", "ExpirationTime")
 	if gui.UserId > 0 {
 		now := time.Now().Format(common.DATE_FORMAT)
 		logs.Info("token: now: ", now, ",expir: ", gui.ExpirationTime)
-		if now > gui.ExpirationTime {
-			return false
-		}
+		// if now > gui.ExpirationTime {
+		// 	return false
+		// }
 	} else {
 		logs.Error("queryErr: ", queryErr)
 		return false
@@ -1157,25 +1165,59 @@ func GetUserInfoByUserId(aui *models.AuthUserInfo, rui *RespUserInfo) {
 	}
 }
 
+var JwtString = "@#$faasdf1254#$DSfWEWEsdf"
+
 func Authorize(ctx *beegoCtx.Context) {
-	token := ctx.Input.Header("Authorization")
-	currentUserClient := authentication.NewClient(authing_userpool_id, authing_userpool_secret)
-	if currentUserClient == nil {
-		ctx.Abort(401, "authentication error")
+	authString := ctx.Input.Header("token")
+	if len(authString) == 0 {
+		authString = ctx.Input.Query("token")
+
+	}
+	token := new(jwt.Token)
+	token.Valid = false
+	var err error
+	if authString != "" {
+		token, err = jwt.Parse(authString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(JwtString), nil
+		})
+		if err != nil {
+			ctx.Output.JSON("Authority authentication failed", false, false)
+			return
+		}
+
+	}
+	if token.Valid {
+		userinfo, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			ctx.Output.JSON("Authority authentication failed", false, false)
+			return
+		}
+		useridStr, _ := userinfo["id"].(string)
+		if len(useridStr) == 0 {
+			ctx.Output.JSON("Authority authentication failed", false, false)
+			return
+		}
+		if useridStr != ctx.Input.Query("userId") {
+			ctx.Output.JSON("Authority authentication failed", false, false)
+			return
+		}
+
+		expireTime := userinfo["exp"].(float64)
+
+		if int(expireTime) <= int(time.Now().Unix()) {
+			ctx.Output.JSON("Authority authentication failed", false, false)
+			return
+		}
+
+		ctx.Input.SetData("me", userinfo["id"])
+
+	} else {
+		ctx.Abort(http.StatusForbidden, "非法用户")
 		return
 	}
-	currentUser, err := currentUserClient.GetCurrentUser(&token)
-	if err != nil {
-		ctx.Abort(401, "authentication error")
-		return
-	}
-	currentUserClient.SetCurrentUser(currentUser)
-	if err != nil {
-		ctx.Abort(401, "authentication error")
-		return
-	}
-	ctx.Input.SetData("me", currentUserClient)
 }
+
+var authingClient *authentication.Client
 
 func InitAuthing() error {
 	authing_app_secret = beego.AppConfig.String("gitee::client_secret")
@@ -1184,11 +1226,12 @@ func InitAuthing() error {
 	authing_userpool_id = beego.AppConfig.String("gitee::userpool_id")
 	authing_authingurl = beego.AppConfig.String("gitee::callback_url")
 	authing_redicturl = beego.AppConfig.String("gitee::redirect_url")
+	authingClient = authentication.NewClient(authing_app_id, authing_app_secret)
 
 	ctx := context.Background()
 	oidcProvider, err := oidc.NewProvider(ctx, authing_redicturl+"/oidc")
 	if err != nil {
-		log.Println(err, "---------2.2-------:", authing_authingurl, "-------------", authing_redicturl)
+		log.Println(err, "--------InitAuthing-------:", authing_authingurl, "-------------", authing_redicturl)
 		return err
 	}
 	OIDCConfig = &oauth2.Config{
@@ -1242,17 +1285,35 @@ func GetJwtString(expire int, id, name, provider string) (string, error) {
 	claims["id"] = id
 	claims["nm"] = name
 	claims["p"] = provider
+	// claims["at"] = accesstoken
 	token.Claims = claims
-	tokenString, err := token.SignedString([]byte("xihesdf@#2334sdF"))
+	tokenString, err := token.SignedString([]byte(JwtString))
 	return tokenString, err
 }
 
-func GetTokenFromAuthing(code string) (interface{}, error) {
-	oauth2Token, err := OIDCConfig.Exchange(context.Background(), code)
+type LoginUserData struct {
+	IdToken string            `json:"idtoken"`
+	Token   string            `json:"token"`
+	User    *AuthingLoginUser `json:"user"`
+}
+
+func GetTokenFromAuthing(code string) (*LoginUserData, error) {
+
+	respStr, err := authingClient.GetAccessTokenByCode(code)
 	if err != nil {
 		return nil, err
 	}
-	userInfo, err := GetUserInfoByToken(oauth2Token.AccessToken)
+	var accessToken GiteeTokenInfo
+
+	err = json.Unmarshal([]byte(respStr), &accessToken)
+	if err != nil {
+		logs.Error("jsonErr: ", err.Error())
+		return nil, err
+	}
+	if accessToken.AccessToken == "" {
+		return nil, fmt.Errorf(respStr)
+	}
+	userInfo, err := GetUserInfoByToken(accessToken.AccessToken)
 	if err != nil {
 
 		return nil, err
@@ -1260,19 +1321,11 @@ func GetTokenFromAuthing(code string) (interface{}, error) {
 
 	token, err := GetJwtString(72, userInfo.Sub, userInfo.Name, userInfo.ExternalID)
 	if err != nil {
-
 		return nil, err
 	}
-	result := &struct {
-		AccessToken  string            `json:"accessToken"`
-		RefreshToken string            `json:"refreshToken"`
-		Token        string            `json:"token"`
-		User         *AuthingLoginUser `json:"user"`
-	}{}
+	result := new(LoginUserData)
+	result.IdToken = accessToken.IdToken
 	result.User = userInfo
-	result.AccessToken = oauth2Token.AccessToken
-	result.RefreshToken = oauth2Token.RefreshToken
 	result.Token = token
-
 	return result, nil
 }
