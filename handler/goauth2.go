@@ -1170,12 +1170,36 @@ func GetUserInfoByUserId(aui *models.AuthUserInfo, rui *RespUserInfo) {
 
 var JwtString = "@#$faasdf1254#$DSfWEWEsdf"
 
+type RequestParameter struct {
+	ResourceId   string `json:"resourceId"`
+	CourseId     string `json:"courseId"`
+	ChapterId    string `json:"chapterId"`
+	Backend      string `json:"backend"`
+	TemplatePath string `json:"templatePath"`
+	UserId       int64  `json:"userId"`
+	ContactEmail string `json:"contactEmail"`
+	Token        string `json:"token"`
+	ForceDelete  int    `json:"forceDelete"`
+}
+type ResData struct {
+	ResInfo interface{} `json:"instanceInfo"`
+	Mesg    string      `json:"message"`
+	Code    int         `json:"code"`
+}
+
 func Authorize(ctx *beegoCtx.Context) {
 	authString := ctx.Input.Header("token")
 	if len(authString) == 0 {
 		authString = ctx.Input.Query("token")
-
 	}
+	if len(authString) == 0 {
+		var rp RequestParameter
+		json.Unmarshal(ctx.Input.RequestBody, &rp)
+		if len(rp.Token) > 0 {
+			authString = rp.Token
+		}
+	}
+
 	token := new(jwt.Token)
 	token.Valid = false
 	var err error

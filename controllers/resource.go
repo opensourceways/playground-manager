@@ -7,7 +7,6 @@ import (
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
-	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -18,28 +17,10 @@ type CrdResourceControllers struct {
 	beego.Controller
 }
 
-type RequestParameter struct {
-	ResourceId   string `json:"resourceId"`
-	CourseId     string `json:"courseId"`
-	ChapterId    string `json:"chapterId"`
-	Backend      string `json:"backend"`
-	TemplatePath string `json:"templatePath"`
-	UserId       int64  `json:"userId"`
-	ContactEmail string `json:"contactEmail"`
-	Token        string `json:"token"`
-	ForceDelete  int    `json:"forceDelete"`
-}
-
-func (c *CrdResourceControllers) RetData(resp ResData) {
+func (c *CrdResourceControllers) RetData(resp handler.ResData) {
 	logs.Info("Create Resource Response: ", resp)
 	c.Data["json"] = resp
 	c.ServeJSON()
-}
-
-type ResData struct {
-	ResInfo interface{} `json:"instanceInfo"`
-	Mesg    string      `json:"message"`
-	Code    int         `json:"code"`
 }
 
 // @Title CreateCrdResource
@@ -49,8 +30,8 @@ type ResData struct {
 // @Failure 403 body is empty
 // @router / [post]
 func (u *CrdResourceControllers) Post() {
-	var rp RequestParameter
-	var resData ResData
+	var rp handler.RequestParameter
+	var resData handler.ResData
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
 	logs.Error("Method: ", req.Method, "Client request ip address: ", addr, ",Header: ", req.Header)
@@ -76,34 +57,34 @@ func (u *CrdResourceControllers) Post() {
 		// 	1, 1, &crd, &ccp)
 		return
 	}
-	if len(rp.Token) < 1 {
-		resData.Code = 401
-		resData.Mesg = "Unauthorized authentication information"
-		u.RetData(resData)
-		// crd := models.Courses{CourseId: rp.CourseId}
-		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
-		// 	"Application Resources", "", "failed",
-		// 	"Unauthorized authentication information",
-		// 	1, 1, &crd, &ccp)
-		return
-	} else {
-		gui := models.AuthUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
-		ok := handler.CheckToken(&gui)
-		if !ok {
-			resData.Mesg = "Authority authentication failed:" + rp.Token + "----userid:" + strconv.Itoa(int(rp.UserId))
-			resData.Code = 403
-			u.RetData(resData)
+	// if len(rp.Token) < 1 {
+	// 	resData.Code = 401
+	// 	resData.Mesg = "Unauthorized authentication information"
+	// 	u.RetData(resData)
+	// 	// crd := models.Courses{CourseId: rp.CourseId}
+	// 	// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+	// 	// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId,
+	// 	// 	"Application Resources", "", "failed",
+	// 	// 	"Unauthorized authentication information",
+	// 	// 	1, 1, &crd, &ccp)
+	// 	return
+	// } else {
+	// 	gui := models.AuthUserInfo{AccessToken: rp.Token, UserId: rp.UserId}
+	// 	ok := handler.CheckToken(&gui)
+	// 	if !ok {
+	// 		resData.Mesg = "Authority authentication failed:" + rp.Token + "----userid:" + strconv.Itoa(int(rp.UserId))
+	// 		resData.Code = 403
+	// 		u.RetData(resData)
 
-			// crd := models.Courses{CourseId: rp.CourseId}
-			// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-			// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
-			// 	"", "filed", "Authority authentication failed",
-			// 	1, 1, &crd, &ccp)
+	// 		// crd := models.Courses{CourseId: rp.CourseId}
+	// 		// ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
+	// 		// handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources",
+	// 		// 	"", "filed", "Authority authentication failed",
+	// 		// 	1, 1, &crd, &ccp)
 
-			return
-		}
-	}
+	// 		return
+	// 	}
+	// }
 
 	if rp.ForceDelete == 0 {
 		rp.ForceDelete = 1
@@ -188,7 +169,7 @@ func (u *CrdResourceControllers) Post() {
 func (u *CrdResourceControllers) Get() {
 	req := u.Ctx.Request
 	addr := req.RemoteAddr
-	var resData ResData
+	var resData handler.ResData
 	logs.Info("Method: ", req.Method, "Client request ip address: ", addr,
 		", Header: ", req.Header, ", body: ", req.Body)
 	token := u.GetString("token")
