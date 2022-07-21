@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"playground_backend/common"
 	"playground_backend/models"
+	"strconv"
 	"time"
 
 	"github.com/Authing/authing-go-sdk/lib/authentication"
@@ -1189,6 +1190,7 @@ type ResData struct {
 
 func Authorize(ctx *beegoCtx.Context) {
 	authString := ctx.Input.Header("token")
+	userId := ctx.Input.Query("userId")
 	if len(authString) == 0 {
 		authString = ctx.Input.Query("token")
 	}
@@ -1198,8 +1200,13 @@ func Authorize(ctx *beegoCtx.Context) {
 		if len(rp.Token) > 0 {
 			authString = rp.Token
 		}
+		if len(userId) == 0 {
+			userId = strconv.Itoa(int(rp.UserId))
+		}
 	}
-
+	if len(userId) == 0 {
+		userId = ctx.Input.Query("token")
+	}
 	token := new(jwt.Token)
 	token.Valid = false
 	var err error
@@ -1224,7 +1231,7 @@ func Authorize(ctx *beegoCtx.Context) {
 			ctx.Output.JSON("Authority authentication failed 3", false, false)
 			return
 		}
-		if useridStr != ctx.Input.Query("userId") {
+		if useridStr != userId {
 			ctx.Output.JSON("Authority authentication failed 4", false, false)
 			return
 		}
