@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"playground_backend/common"
 	"playground_backend/models"
-	"strconv"
 	"time"
 
 	"github.com/Authing/authing-go-sdk/lib/authentication"
@@ -1177,7 +1176,7 @@ type RequestParameter struct {
 	ChapterId    string `json:"chapterId"`
 	Backend      string `json:"backend"`
 	TemplatePath string `json:"templatePath"`
-	UserId       int64  `json:"userId"`
+	UserId       string `json:"userId"`
 	ContactEmail string `json:"contactEmail"`
 	Token        string `json:"token"`
 	ForceDelete  int    `json:"forceDelete"`
@@ -1200,15 +1199,15 @@ func Authorize(ctx *beegoCtx.Context) {
 		if len(rp.Token) > 0 {
 			authString = rp.Token
 		}
-		if len(userId) == 0 && rp.UserId > 0 {
-			userId = strconv.Itoa(int(rp.UserId))
+		if len(userId) == 0 {
+			userId = rp.UserId
 		}
 		fmt.Println(userId, "-----1--------userId:", authString)
 	}
 	if len(userId) == 0 {
 		var rp RequestParameter
 		json.Unmarshal(ctx.Input.RequestBody, &rp)
-		userId = strconv.Itoa(int(rp.UserId))
+		userId = rp.UserId
 		fmt.Println(rp, "------2-------userId:", userId)
 	}
 	token := new(jwt.Token)

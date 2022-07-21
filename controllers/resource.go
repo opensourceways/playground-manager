@@ -7,6 +7,7 @@ import (
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -44,8 +45,7 @@ func (u *CrdResourceControllers) Post() {
 		u.RetData(resData)
 		return
 	}
-	if (len(rp.TemplatePath) < 1 && len(rp.Backend) < 1) ||
-		rp.UserId < 1 || len(rp.CourseId) < 1 {
+	if (len(rp.TemplatePath) < 1 && len(rp.Backend) < 1) || len(rp.CourseId) < 1 {
 		resData.Code = 400
 		resData.Mesg = "Please check whether the request parameters are correct"
 		logs.Error("created crd parameters: ", rp)
@@ -89,10 +89,11 @@ func (u *CrdResourceControllers) Post() {
 	if rp.ForceDelete == 0 {
 		rp.ForceDelete = 1
 	}
+	userid, _ := strconv.Atoi(rp.UserId)
 	// Query resource node information
 	rcp := models.ResourceConfigPath{ResourcePath: rp.TemplatePath, EulerBranch: rp.Backend}
 	var rri = new(handler.ResResourceInfo)
-	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: rp.UserId,
+	rr := handler.ReqResource{EnvResource: rp.TemplatePath, UserId: int64(userid),
 		ContactEmail: rp.ContactEmail, ForceDelete: rp.ForceDelete,
 		ResourceId: rcp.ResourceId, CourseId: rp.CourseId, ChapterId: rp.ChapterId}
 	rri.CourseId = rp.CourseId
@@ -139,7 +140,7 @@ func (u *CrdResourceControllers) Post() {
 		}
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+		handler.WriteCourseData(int64(userid), rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
 			"success", "User learning courses apply for instance resources successfully",
 			1, 1, &crd, &ccp)
 		userResId := handler.CreateUserResourceEnv(rr)
@@ -152,7 +153,7 @@ func (u *CrdResourceControllers) Post() {
 		resData.Mesg = "Failed to create resource, need to request resource again"
 		crd := models.Courses{CourseId: rp.CourseId}
 		ccp := models.CoursesChapter{CourseId: rp.CourseId, ChapterId: rp.ChapterId}
-		handler.WriteCourseData(rp.UserId, rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
+		handler.WriteCourseData(int64(userid), rp.CourseId, rp.ChapterId, "Application Resources", rri.ResName,
 			"failed", "Failed to create resource, need to request resource again",
 			1, 1, &crd, &ccp)
 	}
