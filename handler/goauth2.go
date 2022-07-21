@@ -1200,10 +1200,10 @@ func Authorize(ctx *beegoCtx.Context) {
 		if len(rp.Token) > 0 {
 			authString = rp.Token
 		}
-		if len(userId) == 0 {
+		if len(userId) == 0 && rp.UserId > 0 {
 			userId = strconv.Itoa(int(rp.UserId))
 		}
-		fmt.Println("-----1--------userId:", userId)
+		fmt.Println(userId, "-----1--------userId:", authString)
 	}
 	if len(userId) == 0 {
 		var rp RequestParameter
