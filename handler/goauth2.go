@@ -1203,9 +1203,13 @@ func Authorize(ctx *beegoCtx.Context) {
 		if len(userId) == 0 {
 			userId = strconv.Itoa(int(rp.UserId))
 		}
+		fmt.Println("-----1--------userId:", userId)
 	}
 	if len(userId) == 0 {
-		userId = ctx.Input.Query("token")
+		var rp RequestParameter
+		json.Unmarshal(ctx.Input.RequestBody, &rp)
+		userId = strconv.Itoa(int(rp.UserId))
+		fmt.Println(rp, "------2-------userId:", userId)
 	}
 	token := new(jwt.Token)
 	token.Valid = false
@@ -1243,7 +1247,7 @@ func Authorize(ctx *beegoCtx.Context) {
 			return
 		}
 
-		ctx.Input.SetData("me", userinfo["id"])
+		ctx.Input.SetData("me", useridStr)
 
 	} else {
 		ctx.Abort(http.StatusForbidden, "非法用户")
