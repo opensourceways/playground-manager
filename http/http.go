@@ -66,7 +66,7 @@ func HTTPGitGet(url string) (col map[string]interface{}, err error) {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || body == nil {
-		logs.Error("err: ", err.Error())
+		logs.Error("err: ", err)
 		return nil, err
 	}
 	//logs.Info("url: ", url, "\n body: \n", string(body))

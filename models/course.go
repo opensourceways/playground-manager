@@ -77,7 +77,7 @@ func QueryAllCourseChapterData(status int) (cs []CoursesChapter) {
 		logs.Info("QueryAllCourseChapterData, search num: ", num)
 	} else {
 		logs.Error("QueryAllCourseChapterData, cur_time:",
-			common.GetCurTime(), ",err: ", err.Error())
+			common.GetCurTime(), ",err: ", err)
 	}
 	return
 }
@@ -91,7 +91,7 @@ func QueryAllCourseChapterById(courseId string) (cs []CoursesChapter) {
 		logs.Info("QueryAllCourseChapterById, search num: ", num)
 	} else {
 		logs.Error("QueryAllCourseChapterById, cur_time:",
-			common.GetCurTime(), ",err: ", err.Error())
+			common.GetCurTime(), ",err: ", err)
 	}
 	return
 }
