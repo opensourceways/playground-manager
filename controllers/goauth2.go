@@ -13,6 +13,7 @@ import (
 	"playground_backend/common"
 	"playground_backend/handler"
 	"playground_backend/models"
+	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
@@ -348,12 +349,25 @@ func (u *UserInfoControllers) GetCurrentUser() {
 	gui := new(handler.GiteeUserInfo)
 	handler.GetAuthUserBySub(userpool_id, userpool_secret, userid, gui)
 
-	// useridInt, _ := strconv.Atoi(userid)
+	useridInt, _ := strconv.Atoi(userid)
 	// aui := models.AuthUserInfo{AccessToken: u.GetString("token"), UserId: int64(useridInt)}
 	// rui := handler.RespUserInfo{}
 	// handler.GetGiteeUserData(&aui, &rui)
 
 	// gui.Identity = nil
-	u.Data["json"] = gui
-	u.ServeJSON()
+
+	rui := handler.RespUserInfo{}
+	rui.AvatarUrl = gui.Picture
+	rui.Email = gui.Email
+	rui.NickName = gui.Nickname
+	rui.UserId = int64(useridInt)
+	rui.UserToken = u.GetString("token")
+	gud := GetUserData{}
+	gud.Mesg = "success"
+	gud.Code = 200
+	gud.UserInfo = rui
+	gud.Domain = os.Getenv("DOMAIN")
+	u.RetData(gud)
+	// u.Data["json"] = gui
+	// u.ServeJSON()
 }
