@@ -1208,7 +1208,7 @@ func Authorize(ctx *beegoCtx.Context) {
 			return []byte(JwtString), nil
 		})
 		if err != nil {
-			ctx.Output.JSON("Authority authentication failed", false, false)
+			ctx.Output.JSON("Authority authentication failed 1", false, false)
 			return
 		}
 
@@ -1216,23 +1216,23 @@ func Authorize(ctx *beegoCtx.Context) {
 	if token.Valid {
 		userinfo, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			ctx.Output.JSON("Authority authentication failed", false, false)
+			ctx.Output.JSON("Authority authentication failed 2", false, false)
 			return
 		}
 		useridStr, _ := userinfo["id"].(string)
 		if len(useridStr) == 0 {
-			ctx.Output.JSON("Authority authentication failed", false, false)
+			ctx.Output.JSON("Authority authentication failed 3", false, false)
 			return
 		}
 		if useridStr != ctx.Input.Query("userId") {
-			ctx.Output.JSON("Authority authentication failed", false, false)
+			ctx.Output.JSON("Authority authentication failed 4", false, false)
 			return
 		}
 
 		expireTime := userinfo["exp"].(float64)
 
 		if int(expireTime) <= int(time.Now().Unix()) {
-			ctx.Output.JSON("Authority authentication failed", false, false)
+			ctx.Output.JSON("Authority authentication failed 5", false, false)
 			return
 		}
 
