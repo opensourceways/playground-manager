@@ -1232,7 +1232,7 @@ func Authorize(ctx *beegoCtx.Context) {
 			return
 		}
 		if useridStr != userId {
-			ctx.Output.JSON("Authority authentication failed 4", false, false)
+			ctx.Output.JSON(useridStr+".Authority authentication failed 4."+userId, false, false)
 			return
 		}
 
