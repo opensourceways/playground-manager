@@ -360,7 +360,10 @@ func (u *UserInfoControllers) GetCurrentUser() {
 	rui.AvatarUrl = gui.Picture
 	rui.Email = gui.Email
 	rui.NickName = gui.Nickname
+	rui.Picture = rui.AvatarUrl
 	rui.UserId = int64(useridInt)
+	rui.Sub = userid
+	rui.Nickname = rui.NickName
 	rui.UserToken = u.GetString("token")
 	gud := GetUserData{}
 	gud.Mesg = "success"

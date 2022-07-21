@@ -546,7 +546,10 @@ func CreateGiteeUserInfo(gui *models.AuthUserInfo, aud *models.AuthUserDetail,
 type RespUserInfo struct {
 	UserId    int64  `json:"userId"`
 	NickName  string `json:"nickName"`
+	Nickname  string `json:"nickname "`
+	Sub       string `json:"sub"`
 	AvatarUrl string `json:"avatarUrl"`
+	Picture   string `json:"picture"`
 	UserToken string `json:"userToken"`
 	Email     string `json:"email"`
 }
