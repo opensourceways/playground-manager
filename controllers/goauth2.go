@@ -358,7 +358,7 @@ func (u *UserInfoControllers) GetCurrentUser() {
 
 	rui := handler.RespUserInfo{}
 	rui.AvatarUrl = gui.Picture
-	rui.Email = gui.Email
+	// rui.Email = gui.Email
 	rui.NickName = gui.Nickname
 	rui.Picture = rui.AvatarUrl
 	rui.UserId = int64(useridInt)

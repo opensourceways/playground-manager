@@ -125,7 +125,7 @@ func UpdateCourseAllChapter(status, flag int8, courseId string) error {
 	err := o.Raw("update pg_courses_chapter set status = ?,delete_time = ? where course_id = ?",
 		status, deletTime, courseId).QueryRow()
 	if err != nil && !strings.Contains(err.Error(), "no row found") {
-		logs.Info("UpdateCourseAllChapter err:", err.Error())
+		logs.Info("UpdateCourseAllChapter err:", err)
 	}
 	return err
 }
@@ -172,7 +172,7 @@ func UpdateUserCourseCompleted(CompletedFlag int, courseId string, userId int64)
 	o := orm.NewOrm()
 	err := o.Raw("update pg_user_course set completed_flag = ?,update_time = ? where course_id = ? and user_id = ?",
 		CompletedFlag, common.GetCurTime(), courseId, userId).QueryRow()
-	logs.Info("UpdateUserCourseCompleted", err.Error())
+	logs.Info("UpdateUserCourseCompleted", err)
 	return err
 }
 
@@ -181,7 +181,7 @@ func UpdateUserCourseByCourseId(status int, courseId string) error {
 	deletTime := common.GetCurTime()
 	err := o.Raw("update pg_user_course set status = ?,delete_time = ? where course_id = ? and status=?",
 		status, deletTime, courseId, 1).QueryRow()
-	logs.Info("UpdateUserCourseByCourseId", err.Error())
+	logs.Info("UpdateUserCourseByCourseId", err)
 	return err
 }
 
@@ -190,7 +190,7 @@ func UpdateUserCourseChapterByCourseId(status int, courseId string) error {
 	deletTime := common.GetCurTime()
 	err := o.Raw("update pg_user_course_chapter set status = ?,delete_time = ? where course_id = ? and status = ?",
 		status, deletTime, courseId, 1).QueryRow()
-	logs.Info("UpdateUserCourseChapterByCourseId", err.Error())
+	logs.Info("UpdateUserCourseChapterByCourseId", err)
 	return err
 }
 
